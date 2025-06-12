@@ -16,6 +16,8 @@ PROJECT_DIR="/opt/$PROJECT_NAME"
 SERVICE_NAME="hot-taobao"
 LOG_DIR="/var/log/$PROJECT_NAME"
 USER="www-data"
+GIT_REPO="https://github.com/OwlOooo/hot_taobao_data_v1.git"
+GIT_BRANCH="main"
 
 # 打印带颜色的消息
 print_info() {
@@ -88,27 +90,50 @@ setup_project() {
     print_success "项目环境设置完成"
 }
 
+# 下载项目代码
+download_project() {
+    print_info "从 Git 仓库下载项目代码..."
+
+    # 如果项目目录已存在，先备份
+    if [ -d "$PROJECT_DIR" ]; then
+        backup_dir="/tmp/${PROJECT_NAME}_backup_$(date +%Y%m%d_%H%M%S)"
+        print_info "备份现有项目到: $backup_dir"
+        mv $PROJECT_DIR $backup_dir
+    fi
+
+    # 克隆项目
+    print_info "克隆项目仓库: $GIT_REPO"
+    git clone -b $GIT_BRANCH $GIT_REPO $PROJECT_DIR
+
+    if [ $? -ne 0 ]; then
+        print_error "Git 克隆失败"
+        exit 1
+    fi
+
+    print_success "项目代码下载完成"
+}
+
 # 部署项目
 deploy_project() {
     print_info "部署项目到 $PROJECT_DIR..."
-    
-    # 复制项目文件
-    cp -r ./* $PROJECT_DIR/
-    
+
+    # 下载项目代码
+    download_project
+
     # 设置权限
     chown -R $USER:$USER $PROJECT_DIR
-    
+
     # 进入项目目录
     cd $PROJECT_DIR
-    
+
     # 安装依赖
     print_info "安装项目依赖..."
     sudo -u $USER npm install
-    
+
     # 初始化数据库
     print_info "初始化数据库..."
     sudo -u $USER npm run init-db
-    
+
     print_success "项目部署完成"
 }
 
@@ -222,32 +247,38 @@ view_logs() {
 # 更新项目
 update_project() {
     print_info "更新项目..."
-    
+
     # 停止服务
     sudo -u $USER pm2 stop $SERVICE_NAME
-    
+
     # 备份当前版本
     backup_dir="/tmp/${PROJECT_NAME}_backup_$(date +%Y%m%d_%H%M%S)"
     cp -r $PROJECT_DIR $backup_dir
     print_info "当前版本已备份到: $backup_dir"
-    
+
     # 更新代码
     cd $PROJECT_DIR
-    
+
     # 如果是git仓库
     if [ -d ".git" ]; then
-        sudo -u $USER git pull
+        print_info "从 Git 仓库拉取最新代码..."
+        sudo -u $USER git fetch origin
+        sudo -u $USER git reset --hard origin/$GIT_BRANCH
+        print_success "代码更新完成"
     else
-        print_warning "不是git仓库，请手动更新代码文件"
-        read -p "代码更新完成后按回车继续..."
+        print_warning "不是git仓库，重新下载项目..."
+        cd /tmp
+        download_project
     fi
-    
+
     # 更新依赖
+    print_info "更新项目依赖..."
+    cd $PROJECT_DIR
     sudo -u $USER npm install
-    
+
     # 重启服务
     sudo -u $USER pm2 restart $SERVICE_NAME
-    
+
     print_success "项目更新完成"
 }
 
@@ -280,9 +311,15 @@ show_system_info() {
     echo "操作系统: $(lsb_release -d | cut -f2)"
     echo "Node.js版本: $(node --version 2>/dev/null || echo '未安装')"
     echo "PM2版本: $(pm2 --version 2>/dev/null || echo '未安装')"
+    echo "Git版本: $(git --version 2>/dev/null || echo '未安装')"
+    echo ""
+    print_info "=== 项目配置 ==="
+    echo "项目名称: $PROJECT_NAME"
     echo "项目目录: $PROJECT_DIR"
     echo "日志目录: $LOG_DIR"
     echo "服务用户: $USER"
+    echo "Git仓库: $GIT_REPO"
+    echo "Git分支: $GIT_BRANCH"
     echo ""
 }
 
@@ -290,7 +327,7 @@ show_system_info() {
 show_menu() {
     clear
     echo "=================================================="
-    echo "    热淘宝任务管理系统 - 部署管理脚本"
+    echo "    淘宝订单管理系统 - 部署管理脚本"
     echo "=================================================="
     echo ""
 
@@ -327,6 +364,7 @@ show_menu() {
     echo "=== 系统信息 ==="
     echo "10) 显示系统信息"
     echo "11) 测试服务连接"
+    echo "12) 配置 Git 仓库"
     echo ""
     echo "0) 退出"
     echo ""
@@ -368,6 +406,36 @@ test_connection() {
     fi
 }
 
+# 配置 Git 仓库
+configure_git_repo() {
+    print_info "当前 Git 配置:"
+    echo "仓库地址: $GIT_REPO"
+    echo "分支: $GIT_BRANCH"
+    echo ""
+
+    read -p "是否要修改 Git 仓库地址? (y/N): " change_repo
+    if [[ $change_repo =~ ^[Yy]$ ]]; then
+        read -p "请输入新的 Git 仓库地址: " new_repo
+        if [ ! -z "$new_repo" ]; then
+            GIT_REPO="$new_repo"
+            print_success "Git 仓库地址已更新为: $GIT_REPO"
+        fi
+    fi
+
+    read -p "是否要修改分支? (y/N): " change_branch
+    if [[ $change_branch =~ ^[Yy]$ ]]; then
+        read -p "请输入分支名称 (默认: main): " new_branch
+        if [ ! -z "$new_branch" ]; then
+            GIT_BRANCH="$new_branch"
+        else
+            GIT_BRANCH="main"
+        fi
+        print_success "Git 分支已更新为: $GIT_BRANCH"
+    fi
+
+    print_info "Git 配置完成"
+}
+
 # 全新部署
 full_deploy() {
     print_info "开始全新部署..."
@@ -392,7 +460,7 @@ main() {
 
     while true; do
         show_menu
-        read -p "请选择操作 [0-11]: " choice
+        read -p "请选择操作 [0-12]: " choice
 
         case $choice in
             1)
@@ -436,6 +504,10 @@ main() {
                 ;;
             11)
                 test_connection
+                read -p "按回车键继续..."
+                ;;
+            12)
+                configure_git_repo
                 read -p "按回车键继续..."
                 ;;
             0)
