@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据报表 - 淘宝订单数据管理</title>
+    <!-- <script src="https://registry.npmmirror.com/tailwindcss-cdn/3.4.10/files/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/jquery-3.5.0.min.js"></script>
+    <script src="js/layer.3.5.1/layer.js"></script> -->
+
+     <script src="https://registry.npmmirror.com/tailwindcss-cdn/3.4.10/files/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/jquery-3.5.0.min.js"></script>
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/layer.3.5.1/layer.js"></script>
+    <style>
+        .content-width {
+            max-width: 1400px;
+        }
+
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .stat-card {
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .sort-icon {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            margin-left: 5px;
+            vertical-align: middle;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 4px solid #9CA3AF;
+        }
+
+        .sort-icon.sort-asc {
+            border-bottom: 4px solid #F59E0B;
+            border-top: none;
+        }
+
+        .sort-icon.sort-desc {
+            border-top: 4px solid #F59E0B;
+            border-bottom: none;
+        }
+
+        .pagination-mobile {
+            display: block;
+        }
+
+        .pagination-desktop {
+            display: none;
+        }
+
+        @media (min-width: 640px) {
+            .pagination-mobile {
+                display: none;
+            }
+
+            .pagination-desktop {
+                display: flex;
+            }
+        }
+
+        .date-range-btn {
+            transition: all 0.2s ease;
+        }
+
+        .date-range-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .date-range-btn.active {
+            background-color: #fed7aa !important;
+            color: #c2410c !important;
+            border-color: #fb923c !important;
+        }
+
+        /* 主播用户禁用下拉框样式 */
+        select:disabled {
+            background-color: #f9fafb;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-blue-600 shadow">
+        <div class="content-width mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                            <span class="text-xl font-bold text-white"> 淘宝订单 - 数据报表</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="order.html" class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-list-alt mr-1"></i>订单管理
+                    </a>
+                    <a href="reports.html" class="bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-chart-bar mr-1"></i>数据报表
+                    </a>
+                    <a href="anchors.html"
+                        class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-microphone mr-1"></i>主播管理
+                    </a>
+                    <a href="sync-logs.html"
+                        class="text-white hover:text-blue-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-sync-alt mr-1"></i>同步记录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="content-width mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- 筛选表单 -->
+        <div class="bg-white shadow rounded-lg mb-6 p-4">
+            <form id="filterForm" class="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
+                <div class="sm:col-span-2">
+                    <label for="anchorFilter" class="block text-sm font-medium text-gray-700">主播</label>
+                    <div class="mt-1">
+                        <select id="anchorFilter" name="anchorId"
+                            class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                            <option value="">全部主播</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="startDate" class="block text-sm font-medium text-gray-700">开始日期</label>
+                    <div class="mt-1">
+                        <input type="date" name="startDate" id="startDate"
+                            class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="endDate" class="block text-sm font-medium text-gray-700">结束日期</label>
+                    <div class="mt-1">
+                        <input type="date" name="endDate" id="endDate"
+                            class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                    </div>
+                </div>
+                <div class="sm:col-span-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">快捷时间筛选</label>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button type="button" id="todayBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-calendar-day mr-1"></i> 今日
+                        </button>
+                        <button type="button" id="yesterdayBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-calendar-minus mr-1"></i> 昨日
+                        </button>
+                        <button type="button" id="last7DaysBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-calendar-week mr-1"></i> 最近7天
+                        </button>
+                        <button type="button" id="thisMonthBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-calendar-alt mr-1"></i> 本月
+                        </button>
+                        <button type="button" id="lastMonthBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-calendar-check mr-1"></i> 上月
+                        </button>
+                    </div>
+                    <div class="flex items-center">
+                        <button type="submit" id="queryBtn"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3">
+                            <i class="fas fa-filter mr-2" id="queryIcon"></i>
+                            <span id="queryText">查询</span>
+                        </button>
+                        <button type="button" id="resetBtn"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3">
+                            <i class="fas fa-redo mr-2"></i> 重置
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- 数据概览 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-shopping-bag text-blue-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总订单数</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalOrders">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-green-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-money-bill-wave text-green-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总订单金额</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalOrderAmount">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-yellow-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-coins text-yellow-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总佣金</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalCommission">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-red-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-undo text-red-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">退款数</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalRefundCount">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-purple-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-money-bill-alt text-purple-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">退款金额</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalRefundAmount">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="bg-white shadow overflow-hidden rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">数据报表列表</h3>
+                <div class="flex items-center">
+                    <div class="text-sm text-gray-500 mr-4">共 <span id="totalCount">0</span> 条记录</div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 table-container">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('anchor_name')">
+                                主播 <span id="sort-anchor_name" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('report_date')">
+                                报表日期 <span id="sort-report_date" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('order_count')">
+                                订单数量 <span id="sort-order_count" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('order_amount')">
+                                订单金额 <span id="sort-order_amount" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('commission')">
+                                佣金 <span id="sort-commission" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('buy_count')">
+                                购买数量 <span id="sort-buy_count" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('refund_count')">
+                                退款数量 <span id="sort-refund_count" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('refund_amount')">
+                                退款金额 <span id="sort-refund_amount" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('created_at')">
+                                创建时间 <span id="sort-created_at" class="sort-icon"></span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTable" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <!-- 移动端分页 -->
+                <div class="pagination-mobile flex-1 flex justify-between">
+                    <button id="prevPageMobile"
+                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        上一页
+                    </button>
+                    <div class="text-sm text-gray-700 flex items-center">
+                        第 <span id="currentPageMobile" class="mx-1">1</span> / <span id="totalPagesMobile"
+                            class="mx-1">1</span> 页
+                    </div>
+                    <button id="nextPageMobile"
+                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        下一页
+                    </button>
+                </div>
+                <!-- 桌面端分页 -->
+                <div class="pagination-desktop flex-1 sm:flex sm:items-center sm:justify-between ml-4">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            显示第 <span id="startItem" class="font-medium">1</span> 到第
+                            <span id="endItem" class="font-medium">10</span> 条，共
+                            <span id="totalItems" class="font-medium">0</span> 条
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination"
+                            id="pagination">
+                            <!-- 分页按钮将通过JavaScript填充 -->
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 访问密码输入弹窗 -->
+    <div id="apiKeyModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                请输入访问密码
+                            </h3>
+                            <div class="mt-4">
+                                <form id="apiKeyForm">
+                                    <div class="mb-4">
+                                        <label for="apiKey"
+                                            class="block text-sm font-medium text-gray-700">访问密码</label>
+                                        <input type="password" name="apiKey" id="apiKey"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            required>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submitApiKeyBtn" type="button"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        确认
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        // 当前页码和每页显示数量
+        let currentPage = 1;
+        let pageSize = 10;
+        let totalPages = 0;
+        let filters = {};
+        let currentSortField = 'created_at';
+        let currentSortOrder = 'DESC';
+        let currentUserInfo = null;
+        let queryTimeout = null;
+
+        // 页面加载完成后获取数据
+        $(document).ready(function () {
+            if (typeof layer === 'undefined') {
+                console.error('layer.js 未正确加载');
+                return;
+            }
+
+            initEventListeners();
+
+            // 检查是否有访问密码，如果没有则显示输入弹窗
+            const apiKey = getCookie('api_key');
+            if (!apiKey) {
+                showApiKeyModal();
+                return;
+            }
+
+            // 加载数据
+            Promise.all([
+                loadAnchorOptions(),
+                loadReportsData()
+            ]).catch(error => {
+                console.error('初始化数据加载失败:', error);
+            });
+        });
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 筛选表单提交
+            $('#filterForm').on('submit', function (e) {
+                e.preventDefault();
+                currentPage = 1;
+                loadReportsData();
+            });
+
+            // 重置按钮
+            $('#resetBtn').on('click', function () {
+                $('#filterForm')[0].reset();
+                // 清除快捷按钮的激活状态
+                $('.date-range-btn').removeClass('active');
+
+                // 如果是主播用户，重新设置主播选择
+                if (currentUserInfo && currentUserInfo.userType === 'anchor' && currentUserInfo.anchorInfo) {
+                    $('#anchorFilter').val(currentUserInfo.anchorInfo.anchor_id);
+                }
+
+                currentPage = 1;
+                loadReportsData();
+            });
+
+            // 筛选条件变化时自动触发查询
+            $('#anchorFilter').on('change', function () {
+                triggerDelayedQuery();
+            });
+
+            // 日期输入框变化时触发查询（手动输入时清除快捷按钮状态）
+            $('#startDate, #endDate').on('change', function (e) {
+                // 如果不是通过快捷按钮触发的，则清除快捷按钮激活状态
+                if (!e.isTrigger) {
+                    $('.date-range-btn').removeClass('active');
+                }
+                triggerDelayedQuery();
+            });
+
+
+
+            // 访问密码提交
+            $('#submitApiKeyBtn').on('click', function () {
+                submitApiKey();
+            });
+
+            // 访问密码表单回车提交
+            $('#apiKeyForm').on('submit', function (e) {
+                e.preventDefault();
+                submitApiKey();
+            });
+
+
+
+            // 分页事件
+            $(document).on('click', '.page-btn', function () {
+                const page = parseInt($(this).data('page'));
+                if (page !== currentPage) {
+                    currentPage = page;
+                    loadReportsData();
+                }
+            });
+
+            $('#prevPageMobile').on('click', function () {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadReportsData();
+                }
+            });
+
+            $('#nextPageMobile').on('click', function () {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadReportsData();
+                }
+            });
+
+            // 回车键提交访问密码
+            $('#apiKey').on('keypress', function (e) {
+                if (e.which === 13) {
+                    $('#submitApiKeyBtn').click();
+                }
+            });
+
+            // 快捷时间筛选按钮
+            $('#todayBtn').on('click', function () {
+                setDateRange('today');
+            });
+
+            $('#yesterdayBtn').on('click', function () {
+                setDateRange('yesterday');
+            });
+
+            $('#last7DaysBtn').on('click', function () {
+                setDateRange('last7days');
+            });
+
+            $('#thisMonthBtn').on('click', function () {
+                setDateRange('thisMonth');
+            });
+
+            $('#lastMonthBtn').on('click', function () {
+                setDateRange('lastMonth');
+            });
+        }
+
+        // 防抖查询函数
+        function triggerDelayedQuery() {
+            // 清除之前的定时器
+            if (queryTimeout) {
+                clearTimeout(queryTimeout);
+            }
+
+            // 设置新的定时器，300ms后执行查询
+            queryTimeout = setTimeout(() => {
+                currentPage = 1;
+                loadReportsData();
+            }, 300);
+        }
+
+        // 加载数据报表数据
+        async function loadReportsData() {
+            try {
+                showLoadingState();
+
+                const formData = $('#filterForm').serialize();
+                const params = new URLSearchParams(formData);
+
+                // 添加分页和排序参数
+                params.append('page', currentPage);
+                params.append('limit', pageSize);
+                params.append('sortField', currentSortField);
+                params.append('sortOrder', currentSortOrder);
+
+                const response = await fetch(`/api/reports?${params.toString()}`, {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    showApiKeyModal();
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || '请求失败');
+                }
+
+                const data = await response.json();
+                currentUserInfo = data.userInfo;
+
+                // 根据用户类型调整界面
+                adjustUIForUserType(data.userInfo);
+
+                // 更新表格
+                updateReportsTable(data.reports);
+
+                // 更新统计数据
+                updateStatsCards(data.stats);
+
+                // 更新分页
+                updatePagination(data.pagination);
+
+                // 更新排序图标
+                updateSortIcons();
+
+            } catch (error) {
+                console.error('请求失败:', error);
+                showMessage('网络请求失败，请检查网络连接', false);
+            } finally {
+                hideLoadingState();
+            }
+        }
+
+        // 根据用户类型调整界面
+        function adjustUIForUserType(userInfo) {
+            if (userInfo.userType === 'anchor') {
+
+                // 修改"全部主播"标签为"当前主播"
+                $('label[for="anchorFilter"]').text('当前主播');
+
+                console.log('当前登录用户：主播 -', userInfo.anchorInfo.anchor_name);
+            } else {
+                // 管理员用户界面（保持原样）
+                $('label[for="anchorFilter"]').text('主播');
+                console.log('当前登录用户：管理员');
+            }
+        }
+
+        // 更新数据报表表格
+        function updateReportsTable(reports) {
+            const tbody = $('#reportsTable');
+            tbody.empty();
+
+            if (!reports || reports.length === 0) {
+                tbody.append(`
+                    <tr>
+                        <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
+                            暂无数据
+                        </td>
+                    </tr>
+                `);
+                $('#totalCount').text('0');
+                return;
+            }
+
+            reports.forEach(report => {
+                tbody.append(`
+                    <tr>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">${report.anchor_name}</td>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">${report.report_date}</td>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">${report.order_count}</td>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">¥${Number(report.order_amount).toFixed(2)}</td>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">¥${Number(report.commission).toFixed(2)}</td>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">${report.buy_count}</td>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">${report.refund_count}</td>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">¥${Number(report.refund_amount).toFixed(2)}</td>
+                        <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-900">${report.created_at}</td>
+                    </tr>
+                `);
+            });
+        }
+
+        // 更新统计卡片
+        function updateStatsCards(stats) {
+            if (stats) {
+                $('#totalOrders').text(stats.totalOrders || 0);
+                $('#totalOrderAmount').text('¥' + (Number(stats.totalOrderAmount) || 0).toFixed(2));
+                $('#totalCommission').text('¥' + (Number(stats.totalCommission) || 0).toFixed(2));
+                $('#totalRefundCount').text(stats.totalRefundCount || 0);
+                $('#totalRefundAmount').text('¥' + (Number(stats.totalRefundAmount) || 0).toFixed(2));
+            } else {
+                $('#totalOrders').text('--');
+                $('#totalOrderAmount').text('--');
+                $('#totalCommission').text('--');
+                $('#totalRefundCount').text('--');
+                $('#totalRefundAmount').text('--');
+            }
+        }
+
+        // 设置日期范围
+        function setDateRange(type) {
+            const today = new Date();
+            let startDate, endDate;
+
+            // 清除所有按钮的激活状态
+            $('.date-range-btn').removeClass('active');
+
+            switch (type) {
+                case 'today':
+                    startDate = endDate = formatDateForInput(today);
+                    $('#todayBtn').addClass('active');
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(today.getDate() - 1);
+                    startDate = endDate = formatDateForInput(yesterday);
+                    $('#yesterdayBtn').addClass('active');
+                    break;
+                case 'last7days':
+                    const last7Days = new Date(today);
+                    last7Days.setDate(today.getDate() - 6);
+                    startDate = formatDateForInput(last7Days);
+                    endDate = formatDateForInput(today);
+                    $('#last7DaysBtn').addClass('active');
+                    break;
+                case 'thisMonth':
+                    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                    startDate = formatDateForInput(thisMonthStart);
+                    endDate = formatDateForInput(today);
+                    $('#thisMonthBtn').addClass('active');
+                    break;
+                case 'lastMonth':
+                    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+                    startDate = formatDateForInput(lastMonthStart);
+                    endDate = formatDateForInput(lastMonthEnd);
+                    $('#lastMonthBtn').addClass('active');
+                    break;
+            }
+
+            // 设置日期输入框的值并触发查询
+            $('#startDate').val(startDate);
+            $('#endDate').val(endDate);
+
+            // 直接调用查询，避免清除快捷按钮状态
+            currentPage = 1;
+            loadReportsData();
+        }
+
+        // 格式化日期为输入框格式 (YYYY-MM-DD)
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 加载主播选项
+        async function loadAnchorOptions() {
+            try {
+                const response = await fetch('/api/anchors?mode=full', {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    const errorData = await response.json();
+                    if (errorData.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // 检查是否有错误信息
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+
+
+                // 保存用户信息
+                if (data.userInfo) {
+                    currentUserInfo = data.userInfo;
+                    adjustUIForUserType(data.userInfo);
+                }
+
+                const $select = $('#anchorFilter');
+
+                // 根据用户类型处理下拉框
+                if (data.userInfo && data.userInfo.userType === 'anchor') {
+                    // 主播用户：只显示自己
+                    $select.empty();
+                    if (data.userInfo.anchorInfo) {
+                        $select.append(`<option value="${data.userInfo.anchorInfo.anchor_id}">${data.userInfo.anchorInfo.anchor_name}</option>`);
+                        $select.val(data.userInfo.anchorInfo.anchor_id);
+                        // 禁用下拉框，因为主播只能看自己的数据
+                        $select.prop('disabled', true);
+                    }
+                } else {
+                    // 管理员用户：显示所有主播选项
+                    // 重新设置整个下拉框内容（参考order.html的处理方式）
+                    $select.html('<option value="">全部主播</option>');
+                    $select.prop('disabled', false);
+
+                    // 检查数据结构并添加主播选项
+                    if (data.anchors && Array.isArray(data.anchors) && data.anchors.length > 0) {
+                        data.anchors.forEach(anchor => {
+                            if (anchor.anchor_name && anchor.anchor_id) {
+                                $select.append(`<option value="${anchor.anchor_id}">${anchor.anchor_name}</option>`);
+                            }
+                        });
+                    } else {
+                        // 如果没有主播数据，显示提示信息
+                        $select.append('<option value="" disabled>暂无主播数据</option>');
+                        console.warn('没有找到主播数据，请检查数据库中是否有状态为active的主播');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading anchor options:', error);
+                showMessage('加载主播列表失败: ' + error.message, false);
+            }
+        }
+
+        // 排序切换
+        function toggleSort(field) {
+            if (currentSortField === field) {
+                currentSortOrder = currentSortOrder === 'ASC' ? 'DESC' : 'ASC';
+            } else {
+                currentSortField = field;
+                currentSortOrder = 'DESC';
+            }
+            currentPage = 1;
+            loadReportsData();
+        }
+
+        // 更新排序图标
+        function updateSortIcons() {
+            // 清除所有排序图标
+            $('.sort-icon').removeClass('sort-asc sort-desc').addClass('sort-icon');
+
+            // 设置当前排序字段的图标
+            const $currentIcon = $(`#sort-${currentSortField}`);
+            if ($currentIcon.length) {
+                $currentIcon.addClass(`sort-${currentSortOrder.toLowerCase()}`);
+            }
+        }
+
+        // 更新分页
+        function updatePagination(pagination) {
+            totalPages = pagination.totalPages;
+            $('#totalCount').text(pagination.total);
+
+            // 移动端分页
+            $('#currentPageMobile').text(currentPage);
+            $('#totalPagesMobile').text(totalPages);
+            $('#prevPageMobile').prop('disabled', currentPage <= 1);
+            $('#nextPageMobile').prop('disabled', currentPage >= totalPages);
+
+            // 桌面端分页
+            const startItem = (currentPage - 1) * pageSize + 1;
+            const endItem = Math.min(currentPage * pageSize, pagination.total);
+            $('#startItem').text(startItem);
+            $('#endItem').text(endItem);
+            $('#totalItems').text(pagination.total);
+
+            // 生成分页按钮
+            generatePaginationButtons();
+        }
+
+        // 生成分页按钮
+        function generatePaginationButtons() {
+            const $pagination = $('#pagination');
+            $pagination.empty();
+
+            if (totalPages <= 1) return;
+
+            // 上一页按钮
+            const prevDisabled = currentPage <= 1 ? 'pointer-events-none opacity-50' : '';
+            $pagination.append(`
+                <button class="page-btn relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${prevDisabled}" data-page="${currentPage - 1}">
+                    <span class="sr-only">上一页</span>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `);
+
+            // 页码按钮
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                $pagination.append(`
+                    <button class="page-btn relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50" data-page="1">
+                        1
+                    </button>
+                `);
+                if (startPage > 2) {
+                    $pagination.append(`
+                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                            ...
+                        </span>
+                    `);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage;
+                const activeClass = isActive ? 'z-10 bg-orange-50 border-orange-500 text-orange-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50';
+                $pagination.append(`
+                    <button class="page-btn relative inline-flex items-center px-4 py-2 border text-sm font-medium ${activeClass}" data-page="${i}">
+                        ${i}
+                    </button>
+                `);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    $pagination.append(`
+                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                            ...
+                        </span>
+                    `);
+                }
+                $pagination.append(`
+                    <button class="page-btn relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50" data-page="${totalPages}">
+                        ${totalPages}
+                    </button>
+                `);
+            }
+
+            // 下一页按钮
+            const nextDisabled = currentPage >= totalPages ? 'pointer-events-none opacity-50' : '';
+            $pagination.append(`
+                <button class="page-btn relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${nextDisabled}" data-page="${currentPage + 1}">
+                    <span class="sr-only">下一页</span>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `);
+        }
+
+        // 显示加载状态
+        function showLoadingState() {
+            // 表格加载状态
+            $('#reportsTable').html(`
+                <tr>
+                    <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>加载中...
+                    </td>
+                </tr>
+            `);
+
+            // 查询按钮加载状态
+            $('#queryBtn').prop('disabled', true);
+            $('#queryIcon').removeClass('fa-filter').addClass('fa-spinner fa-spin');
+            $('#queryText').text('查询中...');
+
+            // 统计卡片加载状态
+            $('#totalOrders').text('--');
+            $('#totalOrderAmount').text('--');
+            $('#totalCommission').text('--');
+            $('#totalRefundCount').text('--');
+            $('#totalRefundAmount').text('--');
+        }
+
+        // 隐藏加载状态
+        function hideLoadingState() {
+            // 恢复查询按钮状态
+            $('#queryBtn').prop('disabled', false);
+            $('#queryIcon').removeClass('fa-spinner fa-spin').addClass('fa-filter');
+            $('#queryText').text('查询');
+        }
+
+        // 显示消息
+        function showMessage(message, isSuccess = true) {
+            const icon = isSuccess ? 1 : 2;
+            layer.msg(message, { icon: icon, time: 2000 });
+        }
+
+        // 添加API密钥到请求头
+        function addApiKeyHeader() {
+            const apiKey = getCookie('api_key');
+            return apiKey ? { 'X-API-Key': apiKey } : {};
+        }
+
+        // 获取指定名称的Cookie值
+        function getCookie(name) {
+            const value = "; " + document.cookie;
+            const parts = value.split("; " + name + "=");
+            if (parts.length === 2) return parts.pop().split(";").shift();
+            return null;
+        }
+
+        // 显示访问密码输入弹窗
+        function showApiKeyModal() {
+            $('#apiKeyModal').removeClass('hidden');
+            $('#apiKey').focus();
+        }
+
+        // 隐藏访问密码输入弹窗
+        function hideApiKeyModal() {
+            $('#apiKeyModal').addClass('hidden');
+        }
+
+        // 提交访问密码（参考order.html的实现）
+        async function submitApiKey() {
+            const inputApiKey = $('#apiKey').val().trim();
+
+            if (!inputApiKey) {
+                showMessage('请输入访问密码', false);
+                return;
+            }
+
+            try {
+                const $submitBtn = $('#submitApiKeyBtn');
+                $submitBtn.prop('disabled', true);
+                $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> 验证中...');
+
+                // 发送测试请求验证密码
+                const response = await fetch('/api/reports?page=1&limit=1', {
+                    headers: { 'X-API-Key': inputApiKey }
+                });
+
+                if (response.status === 401) {
+                    showMessage('访问密码错误', false);
+                    $submitBtn.prop('disabled', false);
+                    $submitBtn.html('确认');
+                    return;
+                }
+
+                // 验证成功，设置cookie
+                const expires = new Date();
+                expires.setTime(expires.getTime() + 7 * 24 * 60 * 60 * 1000);
+                document.cookie = "api_key=" + inputApiKey + "; expires=" + expires.toUTCString() + "; path=/";
+
+                hideApiKeyModal();
+
+                // 加载数据
+                Promise.all([
+                    loadAnchorOptions(),
+                    loadReportsData()
+                ]).catch(error => {
+                    console.error('数据加载失败:', error);
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('验证访问密码失败: ' + error.message, false);
+                $('#submitApiKeyBtn').prop('disabled', false);
+                $('#submitApiKeyBtn').html('确认');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>淘宝订单数据管理</title>
+
+    <!-- DNS预解析和预连接以提高加载速度 -->
+    <!-- <link rel="dns-prefetch" href="//cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//cdn.sheetjs.com">
+    <link rel="dns-prefetch" href="//code.jquery.com">
+    <link rel="dns-prefetch" href="//cdn.bootcdn.net"> -->
+
+    <!-- 关键CSS优先加载 -->
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <!-- <link href="https://lib.baomitu.com/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet"> -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> -->
+    <!-- 非关键JS资源延迟加载 -->
+    <!-- <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js" defer></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/layer/3.5.1/layer.min.js"></script> -->
+
+
+
+    <!-- <script src="https://registry.npmmirror.com/tailwindcss-cdn/3.4.10/files/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/xlsx.full.min.js" defer></script>
+    <script src="js/jquery-3.5.0.min.js"></script>
+    <script src="js/layer.3.5.1/layer.js"></script> -->
+
+
+    
+    <script src="https://registry.npmmirror.com/tailwindcss-cdn/3.4.10/files/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/xlsx.full.min.js" defer></script>
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/jquery-3.5.0.min.js"></script>
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/layer.3.5.1/layer.js"></script>
+    <style>
+        .table-container {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 640px) {
+            .pagination-desktop {
+                display: none;
+            }
+
+            .pagination-mobile {
+                display: flex;
+            }
+        }
+
+        @media (min-width: 641px) {
+            .pagination-desktop {
+                display: flex;
+            }
+
+            .pagination-mobile {
+                display: none;
+            }
+        }
+
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .sort-icon {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin-left: 5px;
+        }
+
+        .sort-asc::after {
+            content: '▲';
+            font-size: 10px;
+        }
+
+        .sort-desc::after {
+            content: '▼';
+            font-size: 10px;
+        }
+
+        th.sortable {
+            cursor: pointer;
+        }
+
+        th.sortable:hover {
+            background-color: #f3f4f6;
+        }
+
+        .content-width {
+            width: 80%;
+        }
+
+        .date-range-btn {
+            transition: all 0.2s ease;
+        }
+
+        .date-range-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .date-range-btn.active {
+            background-color: #fed7aa !important;
+            color: #c2410c !important;
+            border-color: #fb923c !important;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-orange-600 shadow">
+        <div class="content-width mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-white"> 淘宝订单 - 订单管理</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+
+                    <a href="order.html" class="bg-orange-700 text-white px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-list-alt mr-1"></i>订单管理
+                    </a>
+                    <a href="reports.html"
+                        class="text-white hover:text-orange-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-chart-bar mr-1"></i>数据报表
+                    </a>
+                    <a href="anchors.html"
+                        class="text-white hover:text-orange-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-microphone mr-1"></i>主播管理
+                    </a>
+                    <a href="sync-logs.html"
+                        class="text-white hover:text-orange-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-sync-alt mr-1"></i>同步记录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="content-width mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- 筛选表单 -->
+        <div class="bg-white shadow rounded-lg mb-6 p-4">
+            <!-- <h2 class="text-lg font-medium text-gray-900 mb-4">筛选条件</h2> -->
+            <form id="filterForm" class="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
+                <div class="sm:col-span-2">
+                    <label for="anchorFilter" class="block text-sm font-medium text-gray-700">主播</label>
+                    <div class="mt-1">
+                        <select id="anchorFilter" name="anchor"
+                            class="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                            <option value="">全部主播</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="sellerNickFilter" class="block text-sm font-medium text-gray-700">商家名称</label>
+                    <div class="mt-1">
+                        <select id="sellerNickFilter" name="sellerNick"
+                            class="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                            <option value="">全部商家</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="orderStatusFilter" class="block text-sm font-medium text-gray-700">订单状态</label>
+                    <div class="mt-1">
+                        <select id="orderStatusFilter" name="orderStatus"
+                            class="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                            <option value="">全部状态</option>
+                            <option value="订单已支付">订单已支付</option>
+                            <option value="订单已确认收货">订单已确认收货</option>
+                            <option value="订单售中退款关闭">订单售中退款关闭</option>
+                            <option value="订单有退款">订单有退款</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- 订单ID筛选已注释
+                <div class="sm:col-span-2">
+                    <label for="bizOrderIdFilter" class="block text-sm font-medium text-gray-700">订单ID</label>
+                    <div class="mt-1">
+                        <input type="text" name="bizOrderId" id="bizOrderIdFilter" class="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                    </div>
+                </div>
+                -->
+                <div class="sm:col-span-2">
+                    <label for="startDate" class="block text-sm font-medium text-gray-700">开始日期</label>
+                    <div class="mt-1">
+                        <input type="date" name="startDate" id="startDate"
+                            class="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="endDate" class="block text-sm font-medium text-gray-700">结束日期</label>
+                    <div class="mt-1">
+                        <input type="date" name="endDate" id="endDate"
+                            class="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                    </div>
+                </div>
+                <div class="sm:col-span-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">快捷时间筛选</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" id="todayBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                            <i class="fas fa-calendar-day mr-1"></i> 今日
+                        </button>
+                        <button type="button" id="yesterdayBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                            <i class="fas fa-calendar-minus mr-1"></i> 昨日
+                        </button>
+                        <button type="button" id="last7DaysBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                            <i class="fas fa-calendar-week mr-1"></i> 最近7天
+                        </button>
+                        <button type="button" id="thisMonthBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                            <i class="fas fa-calendar-alt mr-1"></i> 本月
+                        </button>
+                        <button type="button" id="lastMonthBtn"
+                            class="date-range-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                            <i class="fas fa-calendar-check mr-1"></i> 上月
+                        </button>
+                    </div>
+                </div>
+                <div class="sm:col-span-6 flex justify-between items-center">
+                    <div class="flex items-center">
+                        <button type="submit"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                            <i class="fas fa-filter mr-2"></i> 查询
+                        </button>
+                        <button type="button" id="resetBtn"
+                            class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                            <i class="fas fa-redo mr-2"></i> 重置
+                        </button>
+                        <button type="button" id="exportBtn"
+                            class="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <i class="fas fa-file-export mr-2"></i> 导出Excel
+                        </button>
+                        <!-- <button type="button" id="syncOrderBtn" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-sync-alt mr-2"></i> 同步订单
+                        </button> -->
+                    </div>
+
+                    <!-- 主播同步记录显示区域 -->
+                    <div id="anchorSyncInfo" class="hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+                            <div class="text-sm text-blue-700">
+                                <span>主播：<span id="anchorName" class="font-medium">--</span></span>
+                                <span class="ml-4">最后同步：<span id="lastSyncTime" class="font-medium">--</span></span>
+                                <span class="ml-4">状态：<span id="lastSyncStatus" class="font-medium">--</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- 数据概览 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-shopping-bag text-blue-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总订单数</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalOrders">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-green-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-money-bill-wave text-green-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总订单金额</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalOrderAmount">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-yellow-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-coins text-yellow-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">预估佣金</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalPredictAmount">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-purple-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-calculator text-purple-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">平均订单额</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="avgOrderAmount">--</p>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-red-100 mr-4">
+                        <i class="fas fa-cubes text-red-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总购买数量</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalQuantity">--</p>
+                    </div>
+                </div>
+            </div> -->
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-indigo-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-microphone text-indigo-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">主播数量</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalAnchors">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="bg-white shadow overflow-hidden rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">淘宝订单数据列表</h3>
+                <div class="flex items-center">
+                    <div class="text-sm text-gray-500 mr-4">共 <span id="totalCount">0</span> 条记录</div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 table-container">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('biz_order_id')">
+                                订单ID <span id="sort-biz_order_id" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('seller_nick')">
+                                商家名称 <span id="sort-seller_nick" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                商品标题
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('order_status')">
+                                订单状态 <span id="sort-order_status" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('order_paid_time')">
+                                支付时间 <span id="sort-order_paid_time" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('order_amount')">
+                                订单金额 <span id="sort-order_amount" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('predict_amount')">
+                                预估佣金 <span id="sort-predict_amount" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                佣金比例
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('buy_amount')">
+                                购买数量 <span id="sort-buy_amount" class="sort-icon"></span>
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                主播
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                                onclick="toggleSort('updated_at')">
+                                数据更新时间 <span id="sort-updated_at" class="sort-icon"></span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTable" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="11" class="px-6 py-4 text-center text-sm text-gray-500">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <!-- 移动端分页 -->
+                <div class="pagination-mobile flex-1 flex justify-between">
+                    <button id="prevPageMobile"
+                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        上一页
+                    </button>
+                    <div class="text-sm text-gray-700 flex items-center">
+                        第 <span id="currentPageMobile" class="mx-1">1</span> / <span id="totalPagesMobile"
+                            class="mx-1">1</span> 页
+                    </div>
+                    <button id="nextPageMobile"
+                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        下一页
+                    </button>
+                </div>
+                <!-- 桌面端分页 -->
+                <div class="pagination-desktop flex-1 sm:flex sm:items-center sm:justify-between ml-4">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            显示第 <span id="startItem" class="font-medium">1</span> 到第
+                            <span id="endItem" class="font-medium">10</span> 条，共
+                            <span id="totalItems" class="font-medium">0</span> 条
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination"
+                            id="pagination">
+                            <!-- 分页按钮将通过JavaScript填充 -->
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 访问密码输入弹窗 -->
+    <div id="apiKeyModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                请输入访问密码
+                            </h3>
+                            <div class="mt-4">
+                                <form id="apiKeyForm">
+                                    <div class="mb-4">
+                                        <label for="apiKey"
+                                            class="block text-sm font-medium text-gray-700">访问密码</label>
+                                        <input type="password" name="apiKey" id="apiKey"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                                            required>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submitApiKeyBtn" type="button"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        确认
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 同步订单弹窗 -->
+    <div id="syncOrderModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div
+                            class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-sync-alt text-blue-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="sync-modal-title">
+                                同步订单数据
+                            </h3>
+                            <div class="mt-4">
+                                <form id="syncOrderForm">
+                                    <div class="mb-4">
+                                        <label for="syncAnchorSelect"
+                                            class="block text-sm font-medium text-gray-700">选择主播</label>
+                                        <select id="syncAnchorSelect" name="anchorId"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            required>
+                                            <option value="">请选择主播</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">时间范围设置</label>
+                                        <div class="space-y-3">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="timeMode" value="auto"
+                                                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
+                                                    checked>
+                                                <span
+                                                    class="ml-2 text-sm text-gray-700">自动时间范围（使用主播的max_query_time）</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="timeMode" value="custom"
+                                                    class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                                                <span class="ml-2 text-sm text-gray-700">自定义时间范围</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div id="customTimeRange" class="mb-4 hidden">
+                                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                            <div>
+                                                <label for="syncStartTime"
+                                                    class="block text-sm font-medium text-gray-700">开始时间</label>
+                                                <input type="datetime-local" id="syncStartTime" name="startTime"
+                                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                            </div>
+                                            <div>
+                                                <label for="syncEndTime"
+                                                    class="block text-sm font-medium text-gray-700">结束时间</label>
+                                                <input type="datetime-local" id="syncEndTime" name="endTime"
+                                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 text-xs text-gray-500">
+                                            <i class="fas fa-info-circle mr-1"></i>
+                                            时间格式会自动转换为API所需的格式（YYYYMMDD HH:mm:ss）
+                                        </div>
+                                    </div>
+                                    <div class="mb-4 p-3 bg-blue-50 rounded-md">
+                                        <div class="flex">
+                                            <div class="flex-shrink-0">
+                                                <i class="fas fa-info-circle text-blue-400"></i>
+                                            </div>
+                                            <div class="ml-3">
+                                                <h4 class="text-sm font-medium text-blue-800">同步说明</h4>
+                                                <div class="mt-1 text-sm text-blue-700">
+                                                    <ul class="list-disc list-inside space-y-1">
+                                                        <li>自动时间范围：系统会使用主播的max_query_time作为开始时间</li>
+                                                        <li>如果主播没有max_query_time，将使用10天前作为开始时间</li>
+                                                        <li>系统会自动处理时间区间错误并更新max_query_time</li>
+                                                        <li>同步过程可能需要几分钟，请耐心等待</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="startSyncBtn" type="button"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fas fa-play mr-2"></i>开始同步
+                    </button>
+                    <button id="cancelSyncBtn" type="button"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 当前页码和每页显示数量
+        let currentPage = 1;
+        let pageSize = 10;
+        let totalPages = 0;
+        let filters = {};
+        let currentSortField = 'order_paid_time';
+        let currentSortOrder = 'DESC';
+        let searchTimeout = null; // 防抖定时器
+
+        // 页面加载完成后获取数据
+        $(document).ready(function () {
+            if (typeof layer === 'undefined') {
+                console.error('layer.js 未正确加载');
+                return;
+            }
+
+            initEventListeners();
+
+            // 检查是否有访问密码，如果没有则显示输入弹窗
+            const apiKey = getCookie('api_key');
+            if (!apiKey) {
+                showApiKeyModal();
+                return;
+            }
+
+            // 并行加载数据以提高性能
+            Promise.all([
+                loadSellerNames(),
+                loadAnchorNames(),
+                loadOrdersAndStats()
+            ]).catch(error => {
+                console.error('初始化数据加载失败:', error);
+            });
+        });
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 筛选表单提交
+            $('#filterForm').on('submit', function (e) {
+                e.preventDefault();
+                currentPage = 1;
+
+                // 检查并显示同步信息
+                checkAndShowSyncInfo();
+                loadOrders();
+            });
+
+            // 重置按钮
+            $('#resetBtn').on('click', function () {
+                $('#filterForm')[0].reset();
+                // 重置快捷时间按钮状态
+                updateDateRangeButtonState('');
+                // 隐藏同步信息
+                hideAnchorSyncInfo();
+                currentPage = 1;
+                loadOrders();
+            });
+
+            // 导出按钮
+            $('#exportBtn').on('click', function () {
+                exportToExcel();
+            });
+
+            // 同步订单按钮
+            $('#syncOrderBtn').on('click', function () {
+                showSyncOrderModal();
+            });
+
+            // 同步订单弹窗相关事件
+            $('#startSyncBtn').on('click', function () {
+                startSyncOrder();
+            });
+
+            $('#cancelSyncBtn').on('click', function () {
+                hideSyncOrderModal();
+            });
+
+            // 时间模式切换
+            $('input[name="timeMode"]').on('change', function () {
+                toggleCustomTimeRange($(this).val() === 'custom');
+            });
+
+            // 移动端分页按钮
+            $('#prevPageMobile').on('click', function () {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadOrders();
+                }
+            });
+
+            $('#nextPageMobile').on('click', function () {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadOrders();
+                }
+            });
+
+            // 访问密码提交按钮
+            $('#submitApiKeyBtn').on('click', function () {
+                submitApiKey();
+            });
+
+            // 访问密码表单回车提交
+            $('#apiKeyForm').on('submit', function (e) {
+                e.preventDefault();
+                submitApiKey();
+            });
+
+            // 快捷时间筛选按钮
+            $('#todayBtn').on('click', function () {
+                setDateRange('today');
+            });
+
+            $('#yesterdayBtn').on('click', function () {
+                setDateRange('yesterday');
+            });
+
+            $('#last7DaysBtn').on('click', function () {
+                setDateRange('last7Days');
+            });
+
+            $('#thisMonthBtn').on('click', function () {
+                setDateRange('thisMonth');
+            });
+
+            $('#lastMonthBtn').on('click', function () {
+                setDateRange('lastMonth');
+            });
+
+            // 筛选条件自动触发查询
+            $('#anchorFilter').on('change', function () {
+                debouncedSearch();
+            });
+
+            $('#sellerNickFilter').on('change', function () {
+                debouncedSearch();
+            });
+
+            $('#orderStatusFilter').on('change', function () {
+                debouncedSearch();
+            });
+
+            $('#startDate').on('change', function () {
+                debouncedSearch();
+            });
+
+            $('#endDate').on('change', function () {
+                debouncedSearch();
+            });
+        }
+
+        // 防抖查询函数
+        function debouncedSearch() {
+            // 清除之前的定时器
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+
+            // 设置新的定时器，300ms后执行查询
+            searchTimeout = setTimeout(function () {
+                currentPage = 1;
+
+                // 检查并显示同步信息
+                checkAndShowSyncInfo();
+                loadOrders();
+            }, 300);
+        }
+
+        // 设置日期范围
+        function setDateRange(type) {
+            const today = new Date();
+            const $startDateInput = $('#startDate');
+            const $endDateInput = $('#endDate');
+
+            let startDate, endDate;
+
+            switch (type) {
+                case 'today':
+                    startDate = new Date(today);
+                    endDate = new Date(today);
+                    break;
+
+                case 'yesterday':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 1);
+                    endDate = new Date(startDate);
+                    break;
+
+                case 'last7Days':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 6); // 包含今天，所以是-6
+                    endDate = new Date(today);
+                    break;
+
+                case 'thisMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today);
+                    break;
+
+                case 'lastMonth':
+                    // 上个月的第一天
+                    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    // 上个月的最后一天
+                    endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    break;
+
+                default:
+                    return;
+            }
+
+            // 格式化日期为YYYY-MM-DD格式
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            // 设置日期输入框的值
+            $startDateInput.val(formatDate(startDate));
+            $endDateInput.val(formatDate(endDate));
+
+            // 更新按钮状态
+            updateDateRangeButtonState(type);
+
+            // 自动触发查询
+            currentPage = 1;
+            loadOrders();
+        }
+
+        // 更新日期范围按钮状态
+        function updateDateRangeButtonState(activeType) {
+            const buttons = ['todayBtn', 'yesterdayBtn', 'last7DaysBtn', 'thisMonthBtn', 'lastMonthBtn'];
+
+            // 移除所有按钮的active状态
+            buttons.forEach(btnId => {
+                $('#' + btnId).removeClass('active');
+            });
+
+            // 高亮当前选中的按钮
+            if (activeType) {
+                $('#' + activeType + 'Btn').addClass('active');
+            }
+        }
+
+        // 加载商家名称列表
+        async function loadSellerNames() {
+            try {
+                const response = await fetch("/api/sellers", {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    const data = await response.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '获取商家列表失败');
+                }
+
+                const $selectElement = $('#sellerNickFilter');
+                $selectElement.html('<option value="">全部商家</option>');
+
+                if (data.sellerNames && data.sellerNames.length > 0) {
+                    data.sellerNames.forEach(sellerName => {
+                        if (sellerName) {
+                            $selectElement.append($('<option>', {
+                                value: sellerName,
+                                text: sellerName
+                            }));
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading seller names:', error);
+                showMessage('加载商家列表失败: ' + error.message, false);
+            }
+        }
+
+        // 加载主播名称列表
+        async function loadAnchorNames() {
+            try {
+                // 使用 mode=full 参数获取主播表的数据
+                const response = await fetch("/api/anchors?mode=full", {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    const data = await response.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '获取主播列表失败');
+                }
+
+                const $selectElement = $('#anchorFilter');
+                $selectElement.html('<option value="">全部主播</option>');
+
+                // 使用主播表的数据填充下拉框
+                if (data.anchors && data.anchors.length > 0) {
+                    data.anchors.forEach(anchor => {
+                        if (anchor.anchor_name) {
+                            $selectElement.append($('<option>', {
+                                value: anchor.anchor_name,
+                                text: `${anchor.anchor_name}`,
+                                'data-anchor-id': anchor.anchor_id
+                            }));
+                        }
+                    });
+                } else {
+                    $selectElement.append($('<option>', {
+                        value: '',
+                        text: '暂无主播数据',
+                        disabled: true
+                    }));
+                }
+
+                // 处理用户信息（如果还没有设置的话）
+                if (data.userInfo && !currentUserInfo) {
+                    currentUserInfo = data.userInfo;
+                    adjustUIForUserType(data.userInfo);
+
+                    // 如果是主播用户，在主播列表加载完成后设置默认选中
+                    if (data.userInfo.userType === 'anchor' && data.userInfo.anchorInfo) {
+                        $('#anchorFilter').val(data.userInfo.anchorInfo.anchor_name);
+                        // 设置默认选中后，检查并显示同步信息
+                        checkAndShowSyncInfo();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading anchor names:', error);
+                showMessage('加载主播列表失败: ' + error.message, false);
+            }
+        }
+
+        // 加载主播最近同步记录
+        async function loadAnchorLatestSync(anchorName) {
+            try {
+                const response = await fetch(`/api/anchor-latest-sync?anchorName=${encodeURIComponent(anchorName)}`, {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    const data = await response.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    console.warn('获取主播同步记录失败:', data.error);
+                    showAnchorSyncInfo('--', '--', anchorName);
+                    return;
+                }
+
+                if (data.syncLog) {
+                    const syncTime = data.syncLog.sync_time || '--';
+                    const syncStatus = data.syncLog.sync_status || '--';
+                    showAnchorSyncInfo(syncTime, syncStatus, anchorName);
+                } else {
+                    showAnchorSyncInfo('暂无同步记录', '--', anchorName);
+                }
+            } catch (error) {
+                console.error('Error loading anchor latest sync:', error);
+                showAnchorSyncInfo('--', '--', anchorName);
+            }
+        }
+
+        // 显示主播同步记录信息
+        function showAnchorSyncInfo(syncTime, syncStatus, anchorName) {
+            // 设置主播名称
+            if (anchorName) {
+                $('#anchorName').text(anchorName);
+            } else {
+                $('#anchorName').text('--');
+            }
+
+            $('#lastSyncTime').text(syncTime);
+            $('#lastSyncStatus').text(syncStatus);
+
+            // 根据状态设置颜色
+            const $statusElement = $('#lastSyncStatus');
+            $statusElement.removeClass('text-green-600 text-red-600');
+            if (syncStatus === '成功') {
+                $statusElement.addClass('text-green-600');
+            } else if (syncStatus === '失败') {
+                $statusElement.addClass('text-red-600');
+            }
+
+            $('#anchorSyncInfo').removeClass('hidden');
+        }
+
+        // 隐藏主播同步记录信息
+        function hideAnchorSyncInfo() {
+            $('#anchorSyncInfo').addClass('hidden');
+        }
+
+        // 检查并显示同步信息（统一处理逻辑）
+        function checkAndShowSyncInfo() {
+            const selectedAnchor = $('#anchorFilter').val();
+            if (selectedAnchor && selectedAnchor.trim() !== '') {
+                // 选择了单个主播，显示同步信息
+                loadAnchorLatestSync(selectedAnchor);
+            } else {
+                // 没有选择主播或选择了"全部主播"，隐藏同步信息
+                hideAnchorSyncInfo();
+            }
+        }
+
+        // 全局变量存储用户信息
+        let currentUserInfo = null;
+
+        // 加载订单数据和统计数据（合并请求以提高性能）
+        async function loadOrdersAndStats() {
+            try {
+                // 显示加载状态
+                showLoadingState();
+
+                const formData = $('#filterForm').serialize();
+                const params = new URLSearchParams(formData);
+
+                // 添加分页和排序参数
+                params.append('page', currentPage);
+                params.append('limit', pageSize);
+                params.append('sortField', currentSortField);
+                params.append('sortOrder', currentSortOrder);
+
+                // 并行请求订单数据和统计数据
+                const [ordersResponse, statsResponse] = await Promise.all([
+                    fetch(`/api/orders?${params.toString()}`, {
+                        headers: addApiKeyHeader()
+                    }),
+                    fetch(`/api/stats?${params.toString()}`, {
+                        headers: addApiKeyHeader()
+                    })
+                ]);
+
+                // 处理访问密码验证
+                if (ordersResponse.status === 401 || statsResponse.status === 401) {
+                    const data = await ordersResponse.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const [ordersData, statsData] = await Promise.all([
+                    ordersResponse.json(),
+                    statsResponse.json()
+                ]);
+
+                if (!ordersResponse.ok) {
+                    throw new Error(ordersData.error || '获取订单数据失败');
+                }
+
+                if (!statsResponse.ok) {
+                    console.warn('获取统计数据失败:', statsData.error);
+                }
+
+                if (ordersData.orders) {
+                    displayOrders(ordersData.orders);
+                    updatePagination(ordersData.pagination);
+
+                    // 更新统计数据
+                    if (statsResponse.ok && statsData) {
+                        updateStats(statsData);
+                    }
+
+                    // 处理用户信息和界面调整
+                    if (ordersData.userInfo) {
+                        currentUserInfo = ordersData.userInfo;
+                        adjustUIForUserType(ordersData.userInfo);
+
+                        // 如果是主播用户，设置主播筛选的默认选中
+                        if (ordersData.userInfo.userType === 'anchor' && ordersData.userInfo.anchorInfo) {
+                            $('#anchorFilter').val(ordersData.userInfo.anchorInfo.anchor_name);
+                        }
+                    }
+
+                    // 检查是否选择了单个主播，如果是则显示同步信息
+                    checkAndShowSyncInfo();
+                } else {
+                    console.error('获取订单数据失败:', ordersData.error);
+                    showMessage('获取订单数据失败: ' + (ordersData.error || '未知错误'), false);
+                }
+            } catch (error) {
+                console.error('请求失败:', error);
+                showMessage('网络请求失败，请检查网络连接', false);
+            } finally {
+                // 隐藏加载状态
+                hideLoadingState();
+            }
+        }
+
+        // 根据用户类型调整界面
+        function adjustUIForUserType(userInfo) {
+            if (userInfo.userType === 'anchor') {
+                // 主播用户界面调整
+
+                // 隐藏同步订单按钮（主播不能同步）
+                $('#syncOrderBtn').hide();
+
+                // 主播筛选下拉框保持显示，但默认选中自己
+                $('#anchorFilter').val(userInfo.anchorInfo.anchor_name);
+
+                // 在页面顶部显示当前主播信息
+                showAnchorInfo(userInfo.anchorInfo);
+
+                console.log('当前登录用户：主播 -', userInfo.anchorInfo.anchor_name);
+            } else {
+                // 管理员用户界面（保持原样）
+                $('#syncOrderBtn').show();
+                hideAnchorInfo();
+                console.log('当前登录用户：管理员');
+            }
+        }
+
+        // 显示主播信息
+        function showAnchorInfo(anchorInfo) {
+            // 检查是否已存在主播信息显示区域
+            if ($('#anchorInfoBar').length === 0) {
+                const anchorInfoHtml = `
+                    <div id="anchorInfoBar" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-user-circle text-blue-400 text-xl"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    当前登录：<span class="font-medium">${anchorInfo.anchor_name}</span>
+                                    <span class="text-blue-500 ml-2">(主播账户)</span>
+                                </p>
+                                <p class="text-xs text-blue-600 mt-1">
+                                    您只能查看和导出自己的订单数据，主播筛选已默认选中您的账户
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $('.container').prepend(anchorInfoHtml);
+            }
+        }
+
+        // 隐藏主播信息
+        function hideAnchorInfo() {
+            $('#anchorInfoBar').remove();
+        }
+
+        // 兼容性函数：保持原有的loadOrders函数供其他地方调用
+        async function loadOrders() {
+            return loadOrdersAndStats();
+        }
+
+        // 显示订单数据
+        function displayOrders(orders) {
+            const $tbody = $('#ordersTable');
+            $tbody.empty();
+
+            if (orders.length === 0) {
+                $tbody.html('<tr><td colspan="11" class="px-6 py-4 text-center text-sm text-gray-500">暂无数据</td></tr>');
+                return;
+            }
+
+            orders.forEach(order => {
+                // 格式化金额
+                const orderAmount = order.order_amount ? parseFloat(order.order_amount).toFixed(2) : '0.00';
+                const predictAmount = order.predict_amount ? parseFloat(order.predict_amount).toFixed(2) : '0.00';
+                const buyAmount = order.buy_amount ? parseInt(order.buy_amount) : 0;
+
+                const $row = $('<tr>', {
+                    class: 'hover:bg-gray-50',
+                    html: `
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${order.biz_order_id || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${order.seller_nick || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center max-w-xs truncate" title="${order.item_title || '-'}">${order.item_title || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.order_status)}">
+                                ${order.order_status || '-'}
+                            </span>
+                        </td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${order.order_paid_time || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center font-medium">¥${orderAmount}</td>
+                        <td class="px-3 py-4 text-sm text-green-600 text-center font-medium">¥${predictAmount}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${order.seller_commission_ratio}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${buyAmount}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${order.ad_user_nick || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-500 text-center">${order.updated_at || '-'}</td>
+                    `
+                });
+                $tbody.append($row);
+            });
+        }
+
+        // 获取状态颜色
+        function getStatusColor(status) {
+            const colorMap = {
+                '订单已支付': 'bg-green-100 text-green-800',
+                '订单已确认收货': 'bg-blue-100 text-blue-800',
+                '订单售中退款关闭': 'bg-red-100 text-red-800',
+                '订单有退款': 'bg-yellow-100 text-yellow-800'
+            };
+            return colorMap[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        // 更新统计数据显示
+        function updateStats(data) {
+            $('#totalOrders').text(data.totalOrders || 0);
+            $('#totalOrderAmount').text('¥' + (data.totalOrderAmount ? data.totalOrderAmount.toFixed(2) : '0.00'));
+            $('#totalPredictAmount').text('¥' + (data.totalPredictAmount ? data.totalPredictAmount.toFixed(2) : '0.00'));
+            $('#avgOrderAmount').text('¥' + (data.avgOrderAmount ? data.avgOrderAmount.toFixed(2) : '0.00'));
+            // $('#totalQuantity').text(data.totalQuantity || 0);
+            $('#totalAnchors').text(data.totalAnchors || 0);
+            $('#totalCount').text(data.totalOrders || 0);
+        }
+
+        // 加载统计数据（独立调用时使用）
+        async function loadStats() {
+            try {
+                const formData = $('#filterForm').serialize();
+                const params = new URLSearchParams(formData);
+
+                const response = await fetch(`/api/stats?${params.toString()}`, {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    const data = await response.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '获取统计数据失败');
+                }
+
+                updateStats(data);
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+                showMessage('加载统计数据失败: ' + error.message, false);
+            }
+        }
+
+        // 更新分页信息
+        function updatePagination(pagination) {
+            if (!pagination) return;
+
+            totalPages = pagination.totalPages || 1;
+            const total = pagination.total || 0;
+            const startItem = total > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+            const endItem = Math.min(currentPage * pageSize, total);
+
+            // 更新移动端分页
+            $('#currentPageMobile').text(currentPage);
+            $('#totalPagesMobile').text(totalPages);
+
+            // 更新桌面端分页信息
+            $('#startItem').text(startItem);
+            $('#endItem').text(endItem);
+            $('#totalItems').text(total);
+
+            // 生成桌面端分页按钮
+            generatePaginationButtons();
+
+            // 更新移动端分页按钮状态
+            const $prevMobile = $('#prevPageMobile');
+            const $nextMobile = $('#nextPageMobile');
+
+            $prevMobile.prop('disabled', currentPage <= 1);
+            $nextMobile.prop('disabled', currentPage >= totalPages);
+
+            if (currentPage <= 1) {
+                $prevMobile.addClass('opacity-50 cursor-not-allowed');
+            } else {
+                $prevMobile.removeClass('opacity-50 cursor-not-allowed');
+            }
+
+            if (currentPage >= totalPages) {
+                $nextMobile.addClass('opacity-50 cursor-not-allowed');
+            } else {
+                $nextMobile.removeClass('opacity-50 cursor-not-allowed');
+            }
+        }
+
+        // 生成桌面端分页按钮
+        function generatePaginationButtons() {
+            const $pagination = $('#pagination');
+            $pagination.empty();
+
+            if (totalPages <= 1) return;
+
+            // 上一页按钮
+            const $prevBtn = $('<button>', {
+                class: `relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${currentPage <= 1 ? 'cursor-not-allowed opacity-50' : ''}`,
+                html: '<i class="fas fa-chevron-left"></i>',
+                disabled: currentPage <= 1,
+                click: function () {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        loadOrders();
+                    }
+                }
+            });
+            $pagination.append($prevBtn);
+
+            // 计算显示的页码范围
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            // 如果开始页码大于1，显示第一页和省略号
+            if (startPage > 1) {
+                $pagination.append(createPageButton(1));
+                if (startPage > 2) {
+                    $pagination.append($('<span>', {
+                        class: 'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700',
+                        text: '...'
+                    }));
+                }
+            }
+
+            // 显示页码按钮
+            for (let i = startPage; i <= endPage; i++) {
+                $pagination.append(createPageButton(i));
+            }
+
+            // 如果结束页码小于总页数，显示省略号和最后一页
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    $pagination.append($('<span>', {
+                        class: 'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700',
+                        text: '...'
+                    }));
+                }
+                $pagination.append(createPageButton(totalPages));
+            }
+
+            // 下一页按钮
+            const $nextBtn = $('<button>', {
+                class: `relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${currentPage >= totalPages ? 'cursor-not-allowed opacity-50' : ''}`,
+                html: '<i class="fas fa-chevron-right"></i>',
+                disabled: currentPage >= totalPages,
+                click: function () {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        loadOrders();
+                    }
+                }
+            });
+            $pagination.append($nextBtn);
+        }
+
+        // 创建页码按钮
+        function createPageButton(pageNum) {
+            const isActive = pageNum === currentPage;
+            return $('<button>', {
+                class: `relative inline-flex items-center px-4 py-2 border text-sm font-medium ${isActive
+                        ? 'z-10 bg-orange-50 border-orange-500 text-orange-600'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`,
+                text: pageNum,
+                click: function () {
+                    if (pageNum !== currentPage) {
+                        currentPage = pageNum;
+                        loadOrders();
+                    }
+                }
+            });
+        }
+
+        // 导出Excel
+        async function exportToExcel() {
+            try {
+                const formData = new FormData(document.getElementById('filterForm'));
+                const params = new URLSearchParams();
+
+                // 添加筛选参数
+                for (let [key, value] of formData.entries()) {
+                    if (value) {
+                        params.append(key, value);
+                    }
+                }
+
+                layer.msg('正在导出数据，请稍候...', { icon: 16, shade: 0.3, time: 0 });
+
+                const response = await fetch(`/api/export?${params.toString()}`, {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    layer.closeAll();
+                    const data = await response.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const data = await response.json();
+                layer.closeAll();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '导出数据失败');
+                }
+
+                if (data.orders && data.orders.length > 0) {
+                    // 准备Excel数据
+                    const excelData = data.orders.map(order => ({
+                        '订单ID': order.biz_order_id || '',
+                        '商家名称': order.seller_nick || '',
+                        '商品标题': order.item_title || '',
+                        '产品ID': order.item_id ? String(order.item_id) : '',
+                        '产品链接': order.item_id ? `https://item.taobao.com/item.htm?id=${order.item_id}` : '',
+                        '订单状态': order.order_status || '',
+                        '支付时间': order.order_paid_time || '',
+                        '订单金额': order.order_amount || 0,
+                        '预估佣金': order.predict_amount || 0,
+                        '佣金比例': order.seller_commission_ratio || '',
+                        '购买数量': order.buy_amount || 0,
+                        '主播': order.ad_user_nick || ''
+                    }));
+
+                    // 创建工作簿
+                    const ws = XLSX.utils.json_to_sheet(excelData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "订单数据");
+
+                    // 下载文件
+                    const fileName = `淘宝订单数据_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+
+                    layer.msg('导出成功！', { icon: 1 });
+                } else {
+                    layer.msg('没有数据可导出', { icon: 2 });
+                }
+            } catch (error) {
+                layer.closeAll();
+                console.error('导出失败:', error);
+                showMessage('导出失败，请重试: ' + error.message, false);
+            }
+        }
+
+        // 切换排序
+        function toggleSort(field) {
+            if (currentSortField === field) {
+                currentSortOrder = currentSortOrder === 'ASC' ? 'DESC' : 'ASC';
+            } else {
+                currentSortField = field;
+                currentSortOrder = 'DESC';
+            }
+
+            // 更新排序图标
+            updateSortIcons();
+
+            // 重新加载数据
+            currentPage = 1;
+            loadOrders();
+        }
+
+        // 更新排序图标
+        function updateSortIcons() {
+            // 清除所有排序图标
+            $('.sort-icon').removeClass('sort-asc sort-desc').addClass('sort-icon');
+
+            // 设置当前排序字段的图标
+            const $currentIcon = $(`#sort-${currentSortField}`);
+            if ($currentIcon.length) {
+                $currentIcon.addClass(`sort-${currentSortOrder.toLowerCase()}`);
+            }
+        }
+
+        // 获取指定名称的Cookie值
+        function getCookie(name) {
+            const value = "; " + document.cookie;
+            const parts = value.split("; " + name + "=");
+            if (parts.length === 2) return parts.pop().split(";").shift();
+            return null;
+        }
+
+        // 显示访问密码输入弹窗
+        function showApiKeyModal() {
+            $('#apiKeyModal').removeClass('hidden');
+            $('#apiKey').focus();
+        }
+
+        // 隐藏访问密码输入弹窗
+        function hideApiKeyModal() {
+            $('#apiKeyModal').addClass('hidden');
+        }
+
+        // 提交访问密码
+        async function submitApiKey() {
+            const inputApiKey = $('#apiKey').val().trim();
+
+            if (!inputApiKey) {
+                layer.msg('请输入访问密码', { icon: 2 });
+                return;
+            }
+
+            try {
+                const $submitBtn = $('#submitApiKeyBtn');
+                $submitBtn.prop('disabled', true);
+                $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> 验证中...');
+
+                const response = await fetch('/api/orders?page=1&limit=1', {
+                    headers: { 'X-API-Key': inputApiKey }
+                });
+
+                if (response.status === 401) {
+                    layer.msg('访问密码错误', { icon: 2 });
+                    $submitBtn.prop('disabled', false);
+                    $submitBtn.html('确认');
+                    return;
+                }
+
+                const expires = new Date();
+                expires.setTime(expires.getTime() + 7 * 24 * 60 * 60 * 1000);
+                document.cookie = "api_key=" + inputApiKey + "; expires=" + expires.toUTCString() + "; path=/";
+
+                hideApiKeyModal();
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                layer.msg('验证访问密码失败: ' + error.message, { icon: 2 });
+                $('#submitApiKeyBtn').prop('disabled', false);
+                $('#submitApiKeyBtn').html('确认');
+            }
+        }
+
+        // 添加API请求头
+        function addApiKeyHeader(headers = {}) {
+            const currentApiKey = getCookie('api_key');
+            if (currentApiKey) {
+                return { ...headers, 'X-API-Key': currentApiKey };
+            }
+            return headers;
+        }
+
+        // 显示消息
+        function showMessage(message, isSuccess = true) {
+            if (typeof layer !== 'undefined') {
+                layer.msg(message, { icon: isSuccess ? 1 : 2 });
+            } else {
+                alert(message);
+            }
+        }
+
+        // 显示加载状态
+        function showLoadingState() {
+            const $tbody = $('#ordersTable');
+            $tbody.html('<tr><td colspan="10" class="px-6 py-4 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>加载中...</td></tr>');
+
+            // 重置统计数据显示
+            $('#totalOrders').text('--');
+            $('#totalOrderAmount').text('--');
+            $('#totalPredictAmount').text('--');
+            $('#avgOrderAmount').text('--');
+            // $('#totalQuantity').text('--');
+            $('#totalAnchors').text('--');
+            $('#totalCount').text('--');
+        }
+
+        // 隐藏加载状态
+        function hideLoadingState() {
+            // 加载状态会在displayOrders函数中被替换，这里不需要额外操作
+        }
+
+        // ===== 同步订单相关函数 =====
+
+        // 显示同步订单弹窗
+        async function showSyncOrderModal() {
+            try {
+                // 加载主播列表到同步弹窗中
+                await loadAnchorsForSync();
+
+                // 显示弹窗
+                $('#syncOrderModal').removeClass('hidden');
+
+                // 重置表单
+                $('#syncOrderForm')[0].reset();
+                $('input[name="timeMode"][value="auto"]').prop('checked', true);
+                toggleCustomTimeRange(false);
+
+            } catch (error) {
+                console.error('显示同步弹窗失败:', error);
+                showMessage('加载主播列表失败: ' + error.message, false);
+            }
+        }
+
+        // 隐藏同步订单弹窗
+        function hideSyncOrderModal() {
+            $('#syncOrderModal').addClass('hidden');
+        }
+
+        // 切换自定义时间范围显示
+        function toggleCustomTimeRange(show) {
+            const $customTimeRange = $('#customTimeRange');
+            if (show) {
+                $customTimeRange.removeClass('hidden');
+                // 设置默认时间范围（最近7天）
+                const now = new Date();
+                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+                $('#syncStartTime').val(formatDateTimeLocal(sevenDaysAgo));
+                $('#syncEndTime').val(formatDateTimeLocal(now));
+            } else {
+                $customTimeRange.addClass('hidden');
+            }
+        }
+
+        // 格式化日期时间为datetime-local格式
+        function formatDateTimeLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // 加载主播列表到同步弹窗
+        async function loadAnchorsForSync() {
+            try {
+                const response = await fetch("/api/anchors?mode=full", {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    const data = await response.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '获取主播列表失败');
+                }
+
+                const $selectElement = $('#syncAnchorSelect');
+                $selectElement.html('<option value="">请选择主播</option>');
+
+                if (data.anchors && data.anchors.length > 0) {
+                    data.anchors.forEach(anchor => {
+                        const $option = $('<option>', {
+                            value: anchor.anchor_id,
+                            text: `${anchor.anchor_name} (${anchor.anchor_id})`,
+                            'data-max-query-time': anchor.max_query_time || ''
+                        });
+                        $selectElement.append($option);
+                    });
+                } else {
+                    const $option = $('<option>', {
+                        value: '',
+                        text: '暂无活跃主播',
+                        disabled: true
+                    });
+                    $selectElement.append($option);
+                }
+            } catch (error) {
+                console.error('Error loading anchors for sync:', error);
+                throw error;
+            }
+        }
+
+        // 开始同步订单
+        async function startSyncOrder() {
+            try {
+                const $form = $('#syncOrderForm');
+                const formData = new FormData($form[0]);
+
+                const anchorId = formData.get('anchorId');
+                const timeMode = formData.get('timeMode');
+
+                if (!anchorId) {
+                    showMessage('请选择要同步的主播', false);
+                    return;
+                }
+
+                // 构建同步请求数据
+                const syncData = {
+                    anchorId: anchorId
+                };
+
+                // 如果是自定义时间模式，添加时间参数
+                if (timeMode === 'custom') {
+                    const startTime = formData.get('startTime');
+                    const endTime = formData.get('endTime');
+
+                    if (!startTime || !endTime) {
+                        showMessage('请设置开始时间和结束时间', false);
+                        return;
+                    }
+
+                    // 转换为API所需的格式 (YYYYMMDD HH:mm:ss)
+                    syncData.startTime = convertToApiTimeFormat(startTime);
+                    syncData.endTime = convertToApiTimeFormat(endTime);
+                }
+
+                // 禁用按钮并显示加载状态
+                const $startBtn = $('#startSyncBtn');
+                $startBtn.prop('disabled', true);
+                $startBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>同步中...');
+
+                // 发送同步请求到job.js的端点
+                const response = await fetch('/sync-anchor', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(syncData)
+                });
+
+                const result = await response.json();
+
+                // 打印详细的响应信息
+                console.log('同步API响应状态:', response.status);
+                console.log('同步API响应内容:', result);
+
+                if (!response.ok) {
+                    console.error('同步失败，响应详情:', result);
+                    throw new Error(result.error || '同步失败');
+                }
+
+                // 检查同步结果
+                if (result.success && result.data) {
+                    // 进一步检查data中的success状态
+                    if (result.data.success === false) {
+                        console.error('同步执行失败:', result.data);
+                        throw new Error(result.data.error || '同步执行失败');
+                    }
+
+                    // 显示同步结果
+                    showSyncResult(result);
+
+                    // 隐藏弹窗
+                    hideSyncOrderModal();
+
+                    // 刷新订单列表
+                    loadOrders();
+                } else {
+                    throw new Error(result.error || '同步失败');
+                }
+
+            } catch (error) {
+                console.error('同步订单失败:', error);
+                console.error('错误详情:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+
+                // 显示详细的错误信息
+                let errorMessage = '同步失败: ' + error.message;
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += '\n可能的原因：网络连接问题或服务器无响应';
+                }
+
+                showMessage(errorMessage, false);
+            } finally {
+                // 恢复按钮状态
+                const $startBtn = $('#startSyncBtn');
+                $startBtn.prop('disabled', false);
+                $startBtn.html('<i class="fas fa-play mr-2"></i>开始同步');
+            }
+        }
+
+        // 转换时间格式为API所需格式
+        function convertToApiTimeFormat(datetimeLocal) {
+            const date = new Date(datetimeLocal);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}${month}${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        // 显示同步结果
+        function showSyncResult(result) {
+            if (result.success && result.data) {
+                const data = result.data;
+
+                // 检查是否是成功的同步
+                if (data.success === true) {
+                    const message = `
+                        <div class="text-left">
+                            <h4 class="font-medium text-green-800 mb-2">同步完成！</h4>
+                            <ul class="text-sm text-gray-700 space-y-1">
+                                <li><strong>主播:</strong> ${data.anchor}</li>
+                                <li><strong>时间范围:</strong> ${data.timeRange}</li>
+                                <li><strong>获取订单:</strong> ${data.totalFetched} 条</li>
+                                <li><strong>保存订单:</strong> ${data.totalSaved} 条</li>
+                                <li><strong>处理页数:</strong> ${data.pages} 页</li>
+                                <li><strong>耗时:</strong> ${data.duration}</li>
+                            </ul>
+                        </div>
+                    `;
+
+                    layer.open({
+                        type: 1,
+                        title: '同步结果',
+                        content: message,
+                        area: ['400px', 'auto'],
+                        btn: ['确定'],
+                        yes: function (index) {
+                            layer.close(index);
+                        }
+                    });
+                } else {
+                    // 显示错误信息
+                    const errorMessage = `
+                        <div class="text-left">
+                            <h4 class="font-medium text-red-800 mb-2">同步失败！</h4>
+                            <div class="text-sm text-gray-700 space-y-2">
+                                <p><strong>主播:</strong> ${data.anchor}</p>
+                                <p><strong>错误信息:</strong> ${data.error}</p>
+                                <p><strong>时间范围:</strong> ${data.timeRange}</p>
+                                <p><strong>已获取:</strong> ${data.totalFetched || 0} 条</p>
+                                <p><strong>已保存:</strong> ${data.totalSaved || 0} 条</p>
+                                <p><strong>耗时:</strong> ${data.duration}</p>
+                            </div>
+                        </div>
+                    `;
+
+                    layer.open({
+                        type: 1,
+                        title: '同步失败',
+                        content: errorMessage,
+                        area: ['450px', 'auto'],
+                        btn: ['确定'],
+                        yes: function (index) {
+                            layer.close(index);
+                        }
+                    });
+                }
+            } else {
+                showMessage('同步完成，但结果异常', false);
+            }
+        }
+    </script>
+</body>
+
+</html>

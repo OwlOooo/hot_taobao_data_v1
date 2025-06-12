@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>同步记录 - 淘宝订单管理系统</title>
+
+     <!-- <script src="https://registry.npmmirror.com/tailwindcss-cdn/3.4.10/files/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/jquery-3.5.0.min.js"></script>
+    <script src="js/layer.3.5.1/layer.js"></script> -->
+     <script src="https://registry.npmmirror.com/tailwindcss-cdn/3.4.10/files/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/jquery-3.5.0.min.js"></script>
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/layer.3.5.1/layer.js"></script>
+    <style>
+        .content-width {
+            width: 70%;
+        }
+        .stat-card {
+            transition: transform 0.2s ease-in-out;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .pagination-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .pagination-button:hover {
+            transform: translateY(-1px);
+        }
+        @media (max-width: 640px) {
+            .pagination-desktop {
+                display: none;
+            }
+            .pagination-mobile {
+                display: flex;
+            }
+        }
+        @media (min-width: 641px) {
+            .pagination-desktop {
+                display: flex;
+            }
+            .pagination-mobile {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-indigo-600 shadow">
+        <div class="content-width mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                       <span class="text-xl font-bold text-white"> 淘宝订单 - 同步记录</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="order.html" class="text-white hover:text-indigo-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-list-alt mr-1"></i>订单管理
+                    </a>
+                    <a href="reports.html" class="text-white hover:text-indigo-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-chart-bar mr-1"></i>数据报表
+                    </a>
+                    <a href="anchors.html" class="text-white hover:text-indigo-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-microphone mr-1"></i>主播管理
+                    </a>
+                    <a href="sync-logs.html" class="bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-sync-alt mr-1"></i>同步记录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="content-width mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- 筛选表单 -->
+        <div class="bg-white shadow rounded-lg mb-6 p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-medium text-gray-900">筛选条件</h2>
+            </div>
+            <form id="filterForm" class="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
+                <div class="sm:col-span-2">
+                    <label for="anchorFilter" class="block text-sm font-medium text-gray-700">主播</label>
+                    <select id="anchorFilter" name="anchorId" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="">全部主播</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="syncStatusFilter" class="block text-sm font-medium text-gray-700">同步状态</label>
+                    <select id="syncStatusFilter" name="syncStatus" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="">全部状态</option>
+                        <option value="成功">成功</option>
+                        <option value="失败">失败</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-1">
+                    <label for="startDate" class="block text-sm font-medium text-gray-700">开始日期</label>
+                    <input type="date" id="startDate" name="startDate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div class="sm:col-span-1">
+                    <label for="endDate" class="block text-sm font-medium text-gray-700">结束日期</label>
+                    <input type="date" id="endDate" name="endDate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+            </form>
+            <div class="mt-4 flex justify-start space-x-3">
+                <button onclick="loadSyncLogs()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-search mr-2"></i> 查询
+                </button>
+                <button onclick="resetFilters()" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-undo mr-2"></i> 重置
+                </button>
+            </div>
+        </div>
+
+        <!-- 数据概览 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-indigo-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-sync-alt text-indigo-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总同步次数</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalSyncs">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-green-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">成功次数</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="successSyncs">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-red-100 mr-4 flex items-center justify-center">
+                        <i class="fas fa-times-circle text-red-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">失败次数</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="failedSyncs">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 同步记录表格 -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">同步记录列表</h3>
+                    <div class="text-sm text-gray-500">
+                        共 <span id="totalCount">0</span> 条记录
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">主播ID</th>
+                                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">主播名称</th>
+                                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">同步状态</th>
+                                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">订单数量</th>
+                                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">同步时间</th>
+                                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">失败原因</th>
+                            </tr>
+                        </thead>
+                        <tbody id="syncLogsTable" class="bg-white divide-y divide-gray-200">
+                            <!-- 数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+            <!-- 分页 -->
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <!-- 移动端分页 -->
+                <div class="pagination-mobile flex-1 flex justify-between">
+                    <button id="prevPageMobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        上一页
+                    </button>
+                    <div class="text-sm text-gray-700 flex items-center">
+                        第 <span id="currentPageMobile" class="mx-1">1</span> / <span id="totalPagesMobile" class="mx-1">1</span> 页
+                    </div>
+                    <button id="nextPageMobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        下一页
+                    </button>
+                </div>
+                <!-- 桌面端分页 -->
+                <div class="pagination-desktop flex-1 sm:flex sm:items-center sm:justify-between ml-4">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            显示第 <span id="startItem" class="font-medium">1</span> 到第
+                            <span id="endItem" class="font-medium">10</span> 条，共
+                            <span id="totalItems" class="font-medium">0</span> 条
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="pagination">
+                            <!-- 分页按钮将通过JavaScript填充 -->
+                        </nav>
+                    </div>
+                </div>
+            </div>
+    </main>
+
+    <!-- 访问密码输入弹窗 -->
+    <div id="apiKeyModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                请输入访问密码
+                            </h3>
+                            <div class="mt-4">
+                                <form id="apiKeyForm">
+                                    <div class="mb-4">
+                                        <label for="apiKey" class="block text-sm font-medium text-gray-700">访问密码</label>
+                                        <input type="password" name="apiKey" id="apiKey" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submitApiKeyBtn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        确认
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 当前页码和每页显示数量
+        let currentPage = 1;
+        let pageSize = 10;
+        let totalPages = 0;
+        let filters = {};
+        let currentUserInfo = null;
+
+        // 页面加载完成后获取数据
+        $(document).ready(function() {
+            if (typeof layer === 'undefined') {
+                console.error('layer.js 未正确加载');
+                return;
+            }
+
+            initEventListeners();
+
+            // 检查是否有访问密码，如果没有则显示输入弹窗
+            const apiKey = getCookie('api_key');
+            if (!apiKey) {
+                showApiKeyModal();
+                return;
+            }
+
+            // 并行加载数据
+            Promise.all([
+                loadAnchorOptions(),
+                loadSyncLogs()
+            ]).catch(error => {
+                console.error('初始化数据加载失败:', error);
+            });
+        });
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 筛选条件变化时自动查询
+            $('#anchorFilter, #syncStatusFilter, #startDate, #endDate').on('change', function() {
+                currentPage = 1; // 重置到第一页
+                loadSyncLogs();
+            });
+
+            // 移动端分页按钮
+            $('#prevPageMobile').on('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadSyncLogs();
+                }
+            });
+
+            $('#nextPageMobile').on('click', function() {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadSyncLogs();
+                }
+            });
+
+            // 访问密码提交按钮
+            $('#submitApiKeyBtn').on('click', function() {
+                submitApiKey();
+            });
+
+            // 访问密码表单回车提交
+            $('#apiKeyForm').on('submit', function(e) {
+                e.preventDefault();
+                submitApiKey();
+            });
+        }
+
+        // 添加访问密码到请求头
+        function addApiKeyHeader(headers = {}) {
+            const currentApiKey = getCookie('api_key');
+            if (currentApiKey) {
+                return { ...headers, 'X-API-Key': currentApiKey };
+            }
+            return headers;
+        }
+
+        // 获取Cookie值
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        // 显示访问密码输入弹窗
+        function showApiKeyModal() {
+            $('#apiKeyModal').removeClass('hidden');
+            $('#apiKey').focus();
+        }
+
+        // 隐藏访问密码输入弹窗
+        function hideApiKeyModal() {
+            $('#apiKeyModal').addClass('hidden');
+        }
+
+        // 提交访问密码
+        async function submitApiKey() {
+            const inputApiKey = $('#apiKey').val().trim();
+
+            if (!inputApiKey) {
+                showMessage('请输入访问密码', false);
+                return;
+            }
+
+            try {
+                const $submitBtn = $('#submitApiKeyBtn');
+                $submitBtn.prop('disabled', true);
+                $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> 验证中...');
+
+                const response = await fetch('/api/sync-logs?page=1&limit=1', {
+                    headers: { 'X-API-Key': inputApiKey }
+                });
+
+                if (response.status === 401) {
+                    showMessage('访问密码错误', false);
+                    $submitBtn.prop('disabled', false);
+                    $submitBtn.html('确认');
+                    return;
+                }
+
+                const expires = new Date();
+                expires.setTime(expires.getTime() + (24 * 60 * 60 * 1000)); // 24小时
+                document.cookie = `api_key=${inputApiKey}; expires=${expires.toUTCString()}; path=/`;
+
+                hideApiKeyModal();
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('验证访问密码失败: ' + error.message, false);
+                $('#submitApiKeyBtn').prop('disabled', false);
+                $('#submitApiKeyBtn').html('确认');
+            }
+        }
+
+        // 加载主播选项
+        async function loadAnchorOptions() {
+            try {
+                const response = await fetch('/api/anchors?mode=full', {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    const errorData = await response.json();
+                    if (errorData.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // 检查是否有错误信息
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                const $select = $('#anchorFilter');
+
+                // 清空现有选项（保留"全部主播"）
+                $select.find('option:not(:first)').remove();
+
+                // 检查数据结构并添加主播选项
+                if (data.anchors && Array.isArray(data.anchors)) {
+                    data.anchors.forEach(anchor => {
+                        $select.append(`<option value="${anchor.anchor_id}">${anchor.anchor_name}</option>`);
+                    });
+                } else {
+                    console.warn('主播数据格式不正确:', data);
+                    showMessage('主播数据格式不正确', false);
+                }
+
+                // 处理用户信息
+                if (data.userInfo && !currentUserInfo) {
+                    currentUserInfo = data.userInfo;
+                    adjustUIForUserType(data.userInfo);
+
+                    // 如果是主播用户，设置默认选中自己
+                    if (data.userInfo.userType === 'anchor' && data.userInfo.anchorInfo) {
+                        $('#anchorFilter').val(data.userInfo.anchorInfo.anchor_id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading anchor options:', error);
+                showMessage('加载主播列表失败: ' + error.message, false);
+            }
+        }
+
+        // 加载同步记录数据
+        async function loadSyncLogs() {
+            try {
+                // 显示加载状态
+                showLoadingState();
+
+                const formData = $('#filterForm').serialize();
+                const params = new URLSearchParams(formData);
+
+                // 添加分页参数
+                params.append('page', currentPage);
+                params.append('limit', pageSize);
+                params.append('sortField', 'created_at');
+                params.append('sortOrder', 'DESC');
+
+                const response = await fetch(`/api/sync-logs?${params.toString()}`, {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    const errorData = await response.json();
+                    if (errorData.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // 检查是否有错误信息
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // 检查数据结构并显示数据
+                if (data.syncLogs && Array.isArray(data.syncLogs)) {
+                    displaySyncLogs(data.syncLogs);
+                } else {
+                    console.warn('同步记录数据格式不正确:', data);
+                    displaySyncLogs([]);
+                }
+
+                if (data.pagination) {
+                    updatePagination(data.pagination);
+                } else {
+                    console.warn('分页数据缺失:', data);
+                    updatePagination({ total: 0, page: 1, totalPages: 0 });
+                }
+
+                if (data.stats) {
+                    updateStats(data.stats);
+                } else {
+                    console.warn('统计数据缺失:', data);
+                    updateStats(null);
+                }
+
+                // 处理用户信息
+                if (data.userInfo && !currentUserInfo) {
+                    currentUserInfo = data.userInfo;
+                    adjustUIForUserType(data.userInfo);
+
+                    // 如果是主播用户，设置默认选中自己
+                    if (data.userInfo.userType === 'anchor' && data.userInfo.anchorInfo) {
+                        $('#anchorFilter').val(data.userInfo.anchorInfo.anchor_id);
+                    }
+                }
+
+            } catch (error) {
+                console.error('请求失败:', error);
+                showMessage('网络请求失败，请检查网络连接', false);
+            } finally {
+                // 隐藏加载状态
+                hideLoadingState();
+            }
+        }
+
+        // 显示同步记录数据
+        function displaySyncLogs(syncLogs) {
+            const $tbody = $('#syncLogsTable');
+            $tbody.empty();
+
+            if (syncLogs.length === 0) {
+                $tbody.html('<tr><td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">暂无数据</td></tr>');
+                return;
+            }
+
+            syncLogs.forEach(log => {
+                const statusClass = log.sync_status === '成功' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                const statusIcon = log.sync_status === '成功' ? 'fas fa-check-circle' : 'fas fa-times-circle';
+
+                const $row = $('<tr>', {
+                    class: 'hover:bg-gray-50',
+                    html: `
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${log.anchor_id || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${log.anchor_name || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                                <i class="${statusIcon} mr-1"></i>
+                                ${log.sync_status}
+                            </span>
+                        </td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${log.order_count || 0}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${log.created_at || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-500 text-center max-w-xs truncate" title="${log.reason || '-'}">${log.reason || '-'}</td>
+                    `
+                });
+                $tbody.append($row);
+            });
+        }
+
+        // 更新分页信息
+        function updatePagination(pagination) {
+            if (!pagination) return;
+
+            totalPages = pagination.totalPages || 1;
+            const total = pagination.total || 0;
+            const startItem = total > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+            const endItem = Math.min(currentPage * pageSize, total);
+
+            // 更新移动端分页
+            $('#currentPageMobile').text(currentPage);
+            $('#totalPagesMobile').text(totalPages);
+
+            // 更新桌面端分页
+            $('#startItem').text(startItem);
+            $('#endItem').text(endItem);
+            $('#totalItems').text(total);
+            $('#totalCount').text(total);
+
+            // 生成桌面端分页按钮
+            generatePaginationButtons();
+        }
+
+        // 生成分页按钮
+        function generatePaginationButtons() {
+            const $nav = $('#pagination');
+            $nav.empty();
+
+            if (totalPages <= 1) return;
+
+            // 上一页按钮
+            const prevDisabled = currentPage <= 1;
+            $nav.append(`
+                <button onclick="previousPage()" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${prevDisabled ? 'cursor-not-allowed opacity-50' : ''}" ${prevDisabled ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `);
+
+            // 页码按钮
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage;
+                $nav.append(`
+                    <button onclick="goToPage(${i})" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium ${isActive ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'}">
+                        ${i}
+                    </button>
+                `);
+            }
+
+            // 下一页按钮
+            const nextDisabled = currentPage >= totalPages;
+            $nav.append(`
+                <button onclick="nextPage()" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${nextDisabled ? 'cursor-not-allowed opacity-50' : ''}" ${nextDisabled ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `);
+        }
+
+        // 更新统计信息
+        function updateStats(stats) {
+            if (stats) {
+                $('#totalSyncs').text(stats.total || 0);
+                $('#successSyncs').text(stats.successCount || 0);
+                $('#failedSyncs').text(stats.failedCount || 0);
+            } else {
+                $('#totalSyncs').text('--');
+                $('#successSyncs').text('--');
+                $('#failedSyncs').text('--');
+            }
+        }
+
+        // 分页函数
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadSyncLogs();
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadSyncLogs();
+            }
+        }
+
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages && page !== currentPage) {
+                currentPage = page;
+                loadSyncLogs();
+            }
+        }
+
+        // 重置筛选条件
+        function resetFilters() {
+            $('#filterForm')[0].reset();
+            currentPage = 1;
+            loadSyncLogs();
+        }
+
+        // 显示消息
+        function showMessage(message, isSuccess = true) {
+            if (typeof layer !== 'undefined') {
+                layer.msg(message, { icon: isSuccess ? 1 : 2 });
+            } else {
+                alert(message);
+            }
+        }
+
+        // 显示加载状态
+        function showLoadingState() {
+            const $tbody = $('#syncLogsTable');
+            $tbody.html('<tr><td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>加载中...</td></tr>');
+
+            // 重置统计数据显示
+            $('#totalSyncs').text('--');
+            $('#successSyncs').text('--');
+            $('#failedSyncs').text('--');
+            $('#totalCount').text('--');
+        }
+
+        // 隐藏加载状态
+        function hideLoadingState() {
+            // 加载状态会在displaySyncLogs函数中被替换，这里不需要额外操作
+        }
+
+        // 根据用户类型调整界面
+        function adjustUIForUserType(userInfo) {
+            if (userInfo.userType === 'anchor') {
+                // 主播用户界面调整
+
+                // 在页面顶部显示当前主播信息
+                showAnchorInfo(userInfo.anchorInfo);
+
+
+                console.log('当前登录用户：主播 -', userInfo.anchorInfo.anchor_name);
+            } else {
+                // 管理员用户界面（保持原样）
+                hideAnchorInfo();
+                console.log('当前登录用户：管理员');
+            }
+        }
+
+        // 显示主播信息
+        function showAnchorInfo(anchorInfo) {
+            // 检查是否已存在主播信息显示区域
+            if ($('#anchorInfoBar').length === 0) {
+                const anchorInfoHtml = `
+                    <div id="anchorInfoBar" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-user-circle text-blue-400 text-xl"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    当前登录：<span class="font-medium">${anchorInfo.anchor_name}</span>
+                                    <span class="text-blue-500 ml-2">(主播账户)</span>
+                                </p>
+                                <p class="text-xs text-blue-600 mt-1">
+                                    您只能查看自己的同步记录
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $('.container').prepend(anchorInfoHtml);
+            }
+        }
+
+        // 隐藏主播信息
+        function hideAnchorInfo() {
+            $('#anchorInfoBar').remove();
+        }
+
+        // 重置筛选条件
+        function resetFilters() {
+            $('#filterForm')[0].reset();
+            currentPage = 1;
+            loadSyncLogs();
+        }
+
+        // 分页函数
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                loadSyncLogs();
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadSyncLogs();
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadSyncLogs();
+            }
+        }
+    </script>
+</body>
+</html>

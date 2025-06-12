@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主播管理 - 淘宝订单管理系统</title>
+
+   <!-- <script src="https://registry.npmmirror.com/tailwindcss-cdn/3.4.10/files/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/jquery-3.5.0.min.js"></script>
+    <script src="js/layer.3.5.1/layer.js"></script> -->
+     <script src="https://registry.npmmirror.com/tailwindcss-cdn/3.4.10/files/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/jquery-3.5.0.min.js"></script>
+    <script src="https://fast-1303094100.cos.ap-shanghai.myqcloud.com/static_file/js/layer.3.5.1/layer.js"></script>
+    <style>
+        .table-container {
+            overflow-x: auto;
+        }
+        @media (max-width: 640px) {
+            .pagination-desktop {
+                display: none;
+            }
+            .pagination-mobile {
+                display: flex;
+            }
+        }
+        @media (min-width: 641px) {
+            .pagination-desktop {
+                display: flex;
+            }
+            .pagination-mobile {
+                display: none;
+            }
+        }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .content-width {
+            width: 70%;
+        }
+        .action-btn {
+            transition: all 0.2s ease;
+        }
+        .action-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-purple-600 shadow">
+        <div class="content-width mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                         <span class="text-xl font-bold text-white"> 淘宝订单 - 主播管理</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+
+                    <a href="order.html" class="text-white hover:text-purple-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-list-alt mr-1"></i>订单管理
+                    </a>
+                    <a href="reports.html" class="text-white hover:text-purple-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-chart-bar mr-1"></i>数据报表
+                    </a>
+                    <a href="anchors.html" class="bg-purple-700 text-white px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-microphone mr-1"></i>主播管理
+                    </a>
+                    <a href="sync-logs.html" class="text-white hover:text-purple-200 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-sync-alt mr-1"></i>同步记录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="content-width mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- 筛选表单 -->
+        <div class="bg-white shadow rounded-lg mb-6 p-4">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-lg font-medium text-gray-900">筛选条件</h2>
+                </div>
+                <button onclick="showAddAnchorModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                    <i class="fas fa-plus mr-2"></i> 添加主播
+                </button>
+            </div>
+            <form id="filterForm" class="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
+                <div class="sm:col-span-2">
+                    <label for="anchorNameFilter" class="block text-sm font-medium text-gray-700">主播名称</label>
+                    <div class="mt-1">
+                        <input type="text" name="anchorName" id="anchorNameFilter" class="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border" placeholder="请输入主播名称">
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="anchorIdFilter" class="block text-sm font-medium text-gray-700">主播ID</label>
+                    <div class="mt-1">
+                        <input type="text" name="anchorId" id="anchorIdFilter" class="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border" placeholder="请输入主播ID">
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="statusFilter" class="block text-sm font-medium text-gray-700">状态</label>
+                    <div class="mt-1">
+                        <select id="statusFilter" name="status" class="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border">
+                            <option value="">全部状态</option>
+                            <option value="active">活跃</option>
+                            <option value="inactive">停用</option>
+                            <option value="invalid">失效</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sm:col-span-6 flex justify-end">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                        <i class="fas fa-filter mr-2"></i> 查询
+                    </button>
+                    <button type="button" id="resetBtn" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                        <i class="fas fa-redo mr-2"></i> 重置
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 数据概览 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 mr-4">
+                        <i class="fas fa-microphone text-purple-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总主播数</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalAnchors">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 mr-4">
+                        <i class="fas fa-check-circle text-green-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">活跃主播</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="activeAnchors">--</p>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 mr-4">
+                        <i class="fas fa-shopping-bag text-blue-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总订单数</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalOrders">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 stat-card">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-100 mr-4">
+                        <i class="fas fa-money-bill-wave text-yellow-500"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">总金额</p>
+                        <p class="text-2xl font-semibold text-gray-700" id="totalAmount">--</p>
+                    </div>
+                </div>
+            </div> -->
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="bg-white shadow overflow-hidden rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">主播列表</h3>
+                <div class="flex items-center">
+                    <div class="text-sm text-gray-500 mr-4">共 <span id="totalCount">0</span> 条记录</div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 table-container">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                主播名称
+                            </th>
+                            <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                主播ID
+                            </th>
+                            <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                状态
+                            </th>
+                            <!-- <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                总订单数
+                            </th>
+                            <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                总金额
+                            </th> -->
+                            <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                创建时间
+                            </th>
+                            <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                操作
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="anchorsTable" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <!-- 移动端分页 -->
+                <div class="pagination-mobile flex-1 flex justify-between">
+                    <button id="prevPageMobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        上一页
+                    </button>
+                    <div class="text-sm text-gray-700 flex items-center">
+                        第 <span id="currentPageMobile" class="mx-1">1</span> / <span id="totalPagesMobile" class="mx-1">1</span> 页
+                    </div>
+                    <button id="nextPageMobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        下一页
+                    </button>
+                </div>
+                <!-- 桌面端分页 -->
+                <div class="pagination-desktop flex-1 sm:flex sm:items-center sm:justify-between ml-4">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            显示第 <span id="startItem" class="font-medium">1</span> 到第
+                            <span id="endItem" class="font-medium">10</span> 条，共
+                            <span id="totalItems" class="font-medium">0</span> 条
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination" id="pagination">
+                            <!-- 分页按钮将通过JavaScript填充 -->
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 访问密码输入弹窗 -->
+    <div id="apiKeyModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                请输入访问密码
+                            </h3>
+                            <div class="mt-4">
+                                <form id="apiKeyForm">
+                                    <div class="mb-4">
+                                        <label for="apiKey" class="block text-sm font-medium text-gray-700">访问密码</label>
+                                        <input type="password" name="apiKey" id="apiKey" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" required>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submitApiKeyBtn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        确认
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加主播弹窗 -->
+    <div id="addAnchorModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                添加新主播
+                            </h3>
+                            <form id="addAnchorForm" class="space-y-4">
+                                <div>
+                                    <label for="addAnchorName" class="block text-sm font-medium text-gray-700">
+                                        主播名称 <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" name="anchorName" id="addAnchorName" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                                        placeholder="请输入主播名称">
+                                </div>
+                                <div>
+                                    <label for="addAnchorId" class="block text-sm font-medium text-gray-700">
+                                        主播ID <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" name="anchorId" id="addAnchorId" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                                        placeholder="请输入主播ID">
+                                </div>
+                                <div>
+                                    <label for="addPassword" class="block text-sm font-medium text-gray-700">
+                                        密码 <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" name="password" id="addPassword" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                                        placeholder="请输入密码（至少6位）" minlength="6">
+                                    <p class="mt-1 text-xs text-gray-500">密码不能少于6位</p>
+                                </div>
+                                <div>
+                                    <label for="addAnchorCookie" class="block text-sm font-medium text-gray-700">
+                                        Cookie <span class="text-red-500">*</span>
+                                    </label>
+                                    <textarea name="anchorCookie" id="addAnchorCookie" rows="3" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                                        placeholder="请输入主播的Cookie数据"></textarea>
+                                </div>
+                                <div>
+                                    <label for="addStatus" class="block text-sm font-medium text-gray-700">
+                                        状态 <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="addStatus" name="status" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                                        <option value="active">活跃</option>
+                                        <option value="inactive">停用</option>
+                                        <option value="invalid">失效</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submitAddAnchorBtn" type="button" onclick="submitAddAnchor()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fas fa-save mr-2"></i>保存
+                    </button>
+                    <button type="button" onclick="hideAddAnchorModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑主播弹窗 -->
+    <div id="editAnchorModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                编辑主播信息
+                            </h3>
+                            <form id="editAnchorForm" class="space-y-4">
+                                <input type="hidden" id="editAnchorIdHidden" name="id">
+                                <div>
+                                    <label for="editAnchorName" class="block text-sm font-medium text-gray-700">
+                                        主播名称 <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" name="anchorName" id="editAnchorName" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                                        placeholder="请输入主播名称">
+                                </div>
+                                <div>
+                                    <label for="editAnchorId" class="block text-sm font-medium text-gray-700">
+                                        主播ID <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" name="anchorId" id="editAnchorId" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                                        placeholder="请输入主播ID">
+                                </div>
+                                <div>
+                                    <label for="editPassword" class="block text-sm font-medium text-gray-700">
+                                        密码 <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" name="password" id="editPassword" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                                        placeholder="请输入密码（至少6位）" minlength="6">
+                                    <p class="mt-1 text-xs text-gray-500">密码不能少于6位</p>
+                                </div>
+                                <div>
+                                    <label for="editAnchorCookie" class="block text-sm font-medium text-gray-700">
+                                        Cookie <span class="text-red-500">*</span>
+                                    </label>
+                                    <textarea name="anchorCookie" id="editAnchorCookie" rows="3" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                                        placeholder="请输入主播的Cookie数据"></textarea>
+                                </div>
+                                <div>
+                                    <label for="editStatus" class="block text-sm font-medium text-gray-700">
+                                        状态 <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="editStatus" name="status" required
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                                        <option value="active">活跃</option>
+                                        <option value="inactive">停用</option>
+                                        <option value="invalid">失效</option>
+                                    </select>
+                                </div>
+                               
+                                <!-- 统计信息 -->
+                                <!-- <div class="bg-gray-50 rounded-lg p-3">
+                                    <h4 class="text-sm font-medium text-gray-900 mb-2">统计信息</h4>
+                                    <div class="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <span class="text-gray-600">总订单数：</span>
+                                            <span id="editTotalOrders" class="font-medium">--</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-600">总金额：</span>
+                                            <span id="editTotalAmount" class="font-medium">--</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-600">创建时间：</span>
+                                            <span id="editCreatedAt" class="font-medium">--</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-600">修改时间：</span>
+                                            <span id="editUpdatedAt" class="font-medium">--</span>
+                                        </div>
+                                    </div>
+                                </div> -->
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submitEditAnchorBtn" type="button" onclick="submitEditAnchor()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fas fa-save mr-2"></i>保存修改
+                    </button>
+                    <button type="button" onclick="hideEditAnchorModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentPage = 1;
+        let pageSize = 10;
+        let totalPages = 0;
+        let currentUserInfo = null;
+
+        // 页面加载完成后获取数据
+        $(document).ready(function() {
+            if (typeof layer === 'undefined') {
+                console.error('layer.js 未正确加载');
+                return;
+            }
+
+            initEventListeners();
+
+            // 检查是否有访问密码，如果没有则显示输入弹窗
+            const apiKey = getCookie('api_key');
+            if (!apiKey) {
+                showApiKeyModal();
+                return;
+            }
+
+            loadAnchorsAndStats();
+        });
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 筛选表单提交
+            $('#filterForm').on('submit', function(e) {
+                e.preventDefault();
+                currentPage = 1;
+                loadAnchors();
+            });
+
+            // 重置按钮
+            $('#resetBtn').on('click', function() {
+                $('#filterForm')[0].reset();
+                currentPage = 1;
+                loadAnchors();
+            });
+
+            // 筛选条件自动查询
+            $('#anchorNameFilter, #anchorIdFilter').on('input', debounce(function() {
+                currentPage = 1;
+                loadAnchors();
+            }, 500));
+
+            $('#statusFilter').on('change', function() {
+                currentPage = 1;
+                loadAnchors();
+            });
+
+            // 移动端分页按钮
+            $('#prevPageMobile').on('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadAnchors();
+                }
+            });
+
+            $('#nextPageMobile').on('click', function() {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadAnchors();
+                }
+            });
+
+            // 访问密码提交按钮
+            $('#submitApiKeyBtn').on('click', function() {
+                submitApiKey();
+            });
+
+            // 访问密码表单回车提交
+            $('#apiKeyForm').on('submit', function(e) {
+                e.preventDefault();
+                submitApiKey();
+            });
+
+            // 密码重复检测
+            $('#addPassword').on('input', debounce(function() {
+                checkPasswordDuplicate($(this).val(), null, 'add');
+            }, 500));
+
+            $('#editPassword').on('input', debounce(function() {
+                const excludeId = $('#editAnchorIdHidden').val();
+                checkPasswordDuplicate($(this).val(), excludeId, 'edit');
+            }, 500));
+        }
+
+        // 防抖函数，避免频繁查询
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 加载主播数据和统计数据
+        async function loadAnchorsAndStats() {
+            try {
+                showLoadingState();
+
+                const params = new URLSearchParams();
+
+                // 添加筛选参数
+                const anchorName = $('#anchorNameFilter').val();
+                const anchorId = $('#anchorIdFilter').val();
+                const status = $('#statusFilter').val();
+
+                if (anchorName) params.append('anchorName', anchorName);
+                if (anchorId) params.append('anchorId', anchorId);
+                if (status) params.append('status', status);
+
+                // 添加分页参数
+                params.append('page', currentPage);
+                params.append('limit', pageSize);
+
+                // 并行请求主播数据和统计数据
+                const [anchorsResponse, statsResponse] = await Promise.all([
+                    fetch(`/api/anchors/list?${params.toString()}`, {
+                        headers: addApiKeyHeader()
+                    }),
+                    fetch(`/api/anchors/stats?${params.toString()}`, {
+                        headers: addApiKeyHeader()
+                    })
+                ]);
+
+                // 处理访问密码验证
+                if (anchorsResponse.status === 401 || statsResponse.status === 401) {
+                    const data = await anchorsResponse.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const [anchorsData, statsData] = await Promise.all([
+                    anchorsResponse.json(),
+                    statsResponse.json()
+                ]);
+
+                if (!anchorsResponse.ok) {
+                    throw new Error(anchorsData.error || '获取主播数据失败');
+                }
+
+                if (!statsResponse.ok) {
+                    console.warn('获取统计数据失败:', statsData.error);
+                }
+
+                if (anchorsData.anchors) {
+                    // 先处理用户信息和界面调整
+                    if (anchorsData.userInfo) {
+                        currentUserInfo = anchorsData.userInfo;
+                        adjustUIForUserType(anchorsData.userInfo);
+                    }
+
+                    // 然后显示数据（这样displayAnchors函数中的currentUserInfo已经设置好了）
+                    displayAnchors(anchorsData.anchors);
+                    updatePagination(anchorsData.pagination);
+
+                    // 更新统计数据
+                    if (statsResponse.ok && statsData) {
+                        updateStats(statsData);
+                    }
+                } else {
+                    console.error('获取主播数据失败:', anchorsData.error);
+                    showMessage('获取主播数据失败: ' + (anchorsData.error || '未知错误'), false);
+                }
+            } catch (error) {
+                console.error('请求失败:', error);
+                showMessage('网络请求失败，请检查网络连接', false);
+            } finally {
+                hideLoadingState();
+            }
+        }
+
+        // 加载主播数据（简化调用）
+        async function loadAnchors() {
+            return loadAnchorsAndStats();
+        }
+
+        // 显示主播数据
+        function displayAnchors(anchors) {
+            const $tbody = $('#anchorsTable');
+            $tbody.empty();
+
+            if (anchors.length === 0) {
+                // 根据用户类型决定colspan
+                const colspan = (currentUserInfo && currentUserInfo.userType === 'anchor') ? '4' : '5';
+                $tbody.html(`<tr><td colspan="${colspan}" class="px-6 py-4 text-center text-sm text-gray-500">暂无数据</td></tr>`);
+                return;
+            }
+
+            anchors.forEach(anchor => {
+                const createdAt = anchor.created_at ? new Date(anchor.created_at).toLocaleString('zh-CN') : '-';
+
+                // 根据用户类型决定操作按钮
+                let actionButtons = '';
+                if (currentUserInfo && currentUserInfo.userType === 'anchor') {
+                    // 主播用户不显示任何操作按钮
+                    actionButtons = '';
+                } else {
+                    // 管理员用户可以编辑和删除
+                    actionButtons = `
+                        <button onclick="editAnchor(${anchor.id})" class="action-btn inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-edit mr-1"></i>编辑
+                        </button>
+                        <button onclick="deleteAnchor(${anchor.id}, '${anchor.anchor_name}')" class="action-btn inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <i class="fas fa-trash mr-1"></i>删除
+                        </button>
+                    `;
+                }
+
+                // 根据用户类型决定是否显示操作列
+                let actionColumn = '';
+                if (currentUserInfo && currentUserInfo.userType === 'anchor') {
+                    // 主播用户不显示操作列
+                    actionColumn = '';
+                } else {
+                    // 管理员用户显示操作列
+                    actionColumn = `
+                        <td class="px-3 py-4 text-sm text-center">
+                            <div class="flex justify-center space-x-2">
+                                ${actionButtons}
+                            </div>
+                        </td>
+                    `;
+                }
+
+                const rowHtml = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center font-medium">${anchor.anchor_name || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${anchor.anchor_id || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(anchor.status)}">
+                                ${getStatusText(anchor.status)}
+                            </span>
+                        </td>
+                        <td class="px-3 py-4 text-sm text-gray-900 text-center">${createdAt}</td>
+                        ${actionColumn}
+                    </tr>
+                `;
+                $tbody.append(rowHtml);
+            });
+        }
+
+        // 获取状态颜色
+        function getStatusColor(status) {
+            const colorMap = {
+                'active': 'bg-green-100 text-green-800',
+                'inactive': 'bg-red-100 text-red-800',
+                'invalid': 'bg-orange-100 text-orange-800'
+            };
+            return colorMap[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            const textMap = {
+                'active': '活跃',
+                'inactive': '停用',
+                'invalid': '失效'
+            };
+            return textMap[status] || '未知';
+        }
+
+        // 更新统计数据显示
+        function updateStats(data) {
+            $('#totalAnchors').text(data.totalAnchors || 0);
+            $('#activeAnchors').text(data.activeAnchors || 0);
+            $('#totalCount').text(data.totalAnchors || 0);
+        }
+
+        // 更新分页信息
+        function updatePagination(pagination) {
+            if (!pagination) return;
+
+            totalPages = pagination.totalPages || 1;
+            const total = pagination.total || 0;
+            const startItem = total > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+            const endItem = Math.min(currentPage * pageSize, total);
+
+            // 更新移动端分页
+            $('#currentPageMobile').text(currentPage);
+            $('#totalPagesMobile').text(totalPages);
+
+            // 更新桌面端分页信息
+            $('#startItem').text(startItem);
+            $('#endItem').text(endItem);
+            $('#totalItems').text(total);
+
+            // 更新分页按钮状态
+            const $prevMobile = $('#prevPageMobile');
+            const $nextMobile = $('#nextPageMobile');
+
+            $prevMobile.prop('disabled', currentPage <= 1);
+            $nextMobile.prop('disabled', currentPage >= totalPages);
+
+            if (currentPage <= 1) {
+                $prevMobile.addClass('opacity-50 cursor-not-allowed');
+            } else {
+                $prevMobile.removeClass('opacity-50 cursor-not-allowed');
+            }
+
+            if (currentPage >= totalPages) {
+                $nextMobile.addClass('opacity-50 cursor-not-allowed');
+            } else {
+                $nextMobile.removeClass('opacity-50 cursor-not-allowed');
+            }
+        }
+
+        // 编辑主播
+        async function editAnchor(id) {
+            try {
+                // 显示加载状态
+                layer.msg('正在加载主播信息...', { icon: 16, shade: 0.3, time: 0 });
+
+                const response = await fetch(`/api/anchors/${id}`, {
+                    headers: addApiKeyHeader()
+                });
+
+                if (response.status === 401) {
+                    layer.closeAll();
+                    const data = await response.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const data = await response.json();
+                layer.closeAll();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '获取主播信息失败');
+                }
+
+                // 填充编辑表单
+                fillEditForm(data.anchor);
+
+                // 显示编辑弹窗
+                showEditAnchorModal();
+            } catch (error) {
+                layer.closeAll();
+                console.error('加载主播数据失败:', error);
+                layer.msg('加载失败: ' + error.message, { icon: 2 });
+            }
+        }
+
+        // 删除主播
+        async function deleteAnchor(id, name) {
+            layer.confirm(`确定要删除主播 "${name}" 吗？`, {
+                icon: 3,
+                title: '确认删除'
+            }, async function(index) {
+                try {
+                    const response = await fetch(`/api/anchors/${id}`, {
+                        method: 'DELETE',
+                        headers: addApiKeyHeader()
+                    });
+
+                    if (response.status === 401) {
+                        const data = await response.json();
+                        if (data.error === "invalid_api_key") {
+                            showApiKeyModal();
+                            return;
+                        }
+                    }
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || '删除主播失败');
+                    }
+
+                    layer.close(index);
+                    layer.msg('删除成功！', { icon: 1 });
+                    loadAnchors(); // 重新加载数据
+                } catch (error) {
+                    console.error('删除主播失败:', error);
+                    layer.msg('删除失败: ' + error.message, { icon: 2 });
+                }
+            });
+        }
+
+        // 获取指定名称的Cookie值
+        function getCookie(name) {
+            const value = "; " + document.cookie;
+            const parts = value.split("; " + name + "=");
+            if (parts.length === 2) return parts.pop().split(";").shift();
+            return null;
+        }
+
+        // 显示访问密码输入弹窗
+        function showApiKeyModal() {
+            $('#apiKeyModal').removeClass('hidden');
+            $('#apiKey').focus();
+        }
+
+        // 隐藏访问密码输入弹窗
+        function hideApiKeyModal() {
+            $('#apiKeyModal').addClass('hidden');
+        }
+
+        // 提交访问密码
+        async function submitApiKey() {
+            const inputApiKey = $('#apiKey').val().trim();
+
+            if (!inputApiKey) {
+                layer.msg('请输入访问密码', { icon: 2 });
+                return;
+            }
+
+            try {
+                const $submitBtn = $('#submitApiKeyBtn');
+                $submitBtn.prop('disabled', true);
+                $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> 验证中...');
+
+                const response = await fetch('/api/anchors/list?page=1&limit=1', {
+                    headers: { 'X-API-Key': inputApiKey }
+                });
+
+                if (response.status === 401) {
+                    layer.msg('访问密码错误', { icon: 2 });
+                    $submitBtn.prop('disabled', false);
+                    $submitBtn.html('确认');
+                    return;
+                }
+
+                const expires = new Date();
+                expires.setTime(expires.getTime() + 7 * 24 * 60 * 60 * 1000);
+                document.cookie = "api_key=" + inputApiKey + "; expires=" + expires.toUTCString() + "; path=/";
+
+                hideApiKeyModal();
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                layer.msg('验证访问密码失败: ' + error.message, { icon: 2 });
+                $('#submitApiKeyBtn').prop('disabled', false);
+                $('#submitApiKeyBtn').html('确认');
+            }
+        }
+
+        // 添加API请求头
+        function addApiKeyHeader(headers = {}) {
+            const currentApiKey = getCookie('api_key');
+            if (currentApiKey) {
+                return { ...headers, 'X-API-Key': currentApiKey };
+            }
+            return headers;
+        }
+
+        // 显示消息
+        function showMessage(message, isSuccess = true) {
+            if (typeof layer !== 'undefined') {
+                layer.msg(message, { icon: isSuccess ? 1 : 2 });
+            } else {
+                alert(message);
+            }
+        }
+
+        // 显示加载状态
+        function showLoadingState() {
+            // 根据用户类型决定colspan
+            const colspan = (currentUserInfo && currentUserInfo.userType === 'anchor') ? '4' : '5';
+            $('#anchorsTable').html(`<tr><td colspan="${colspan}" class="px-6 py-4 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>加载中...</td></tr>`);
+
+            // 重置统计数据显示
+            $('#totalAnchors').text('--');
+            $('#activeAnchors').text('--');
+            $('#totalCount').text('--');
+        }
+
+        // 隐藏加载状态
+        function hideLoadingState() {
+            // 加载状态会在displayAnchors函数中被替换，这里不需要特别处理
+        }
+
+        // 根据用户类型调整界面
+        function adjustUIForUserType(userInfo) {
+            if (userInfo.userType === 'anchor') {
+                // 主播用户界面调整
+
+                // 隐藏添加主播按钮（主播不能添加其他主播）
+                $('button[onclick="showAddAnchorModal()"]').hide();
+
+                // 隐藏操作列表头
+                $('th:contains("操作")').hide();
+
+                // 在页面顶部显示当前主播信息
+                showAnchorInfo(userInfo.anchorInfo);
+
+              
+                console.log('当前登录用户：主播 -', userInfo.anchorInfo.anchor_name);
+            } else {
+                // 管理员用户界面（保持原样）
+                $('button[onclick="showAddAnchorModal()"]').show();
+                $('th:contains("操作")').show();
+                hideAnchorInfo();
+              
+                console.log('当前登录用户：管理员');
+            }
+        }
+
+        // 显示主播信息
+        function showAnchorInfo(anchorInfo) {
+            // 检查是否已存在主播信息显示区域
+            if ($('#anchorInfoBar').length === 0) {
+                const anchorInfoHtml = `
+                    <div id="anchorInfoBar" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-user-circle text-blue-400 text-xl"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    当前登录：<span class="font-medium">${anchorInfo.anchor_name}</span>
+                                    <span class="text-blue-500 ml-2">(主播账户)</span>
+                                </p>
+                                <p class="text-xs text-blue-600 mt-1">
+                                    您只能查看自己的主播信息，无法进行修改操作
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $('.content-width.mx-auto.py-6').prepend(anchorInfoHtml);
+            }
+        }
+
+        // 隐藏主播信息
+        function hideAnchorInfo() {
+            $('#anchorInfoBar').remove();
+        }
+
+        // ========== 密码重复检测函数 ==========
+
+        // 检查密码是否重复
+        async function checkPasswordDuplicate(password, excludeId, type) {
+            const messageElementId = type === 'add' ? 'addPasswordMessage' : 'editPasswordMessage';
+            const $messageElement = $(`#${messageElementId}`);
+
+            // 清除之前的消息
+            $messageElement.remove();
+
+            if (!password) {
+                return;
+            }
+
+            if (password.length < 6) {
+                showPasswordMessage(type, '密码不能少于6位', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/anchors/check-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...addApiKeyHeader()
+                    },
+                    body: JSON.stringify({
+                        password: password,
+                        excludeId: excludeId
+                    })
+                });
+
+                if (response.status === 401) {
+                    const data = await response.json();
+                    if (data.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    console.error('检查密码失败:', result.error);
+                    return;
+                }
+
+                if (result.isDuplicate) {
+                    showPasswordMessage(type, result.message, 'error');
+                } else if (result.isValid) {
+                    showPasswordMessage(type, '密码可以使用', 'success');
+                } else {
+                    showPasswordMessage(type, result.message, 'error');
+                }
+            } catch (error) {
+                console.error('检查密码失败:', error);
+            }
+        }
+
+        // 显示密码验证消息
+        function showPasswordMessage(type, message, messageType) {
+            const inputId = type === 'add' ? 'addPassword' : 'editPassword';
+            const messageId = type === 'add' ? 'addPasswordMessage' : 'editPasswordMessage';
+            const $input = $(`#${inputId}`);
+
+            // 移除之前的消息
+            $(`#${messageId}`).remove();
+
+            // 创建消息元素
+            const messageClass = messageType === 'success' ? 'text-green-600' : 'text-red-600';
+            const messageHtml = `<p id="${messageId}" class="mt-1 text-xs ${messageClass}">${message}</p>`;
+
+            // 在输入框后面插入消息
+            $input.parent().find('p').last().after(messageHtml);
+        }
+
+        // ========== Modal 相关函数 ==========
+
+        // 显示添加主播弹窗
+        function showAddAnchorModal() {
+            $('#addAnchorForm')[0].reset();
+            // 清除密码验证消息
+            $('#addPasswordMessage').remove();
+            $('#addAnchorModal').removeClass('hidden');
+            $('#addAnchorName').focus();
+        }
+
+        // 隐藏添加主播弹窗
+        function hideAddAnchorModal() {
+            $('#addAnchorModal').addClass('hidden');
+        }
+
+        // 显示编辑主播弹窗
+        function showEditAnchorModal() {
+            // 清除密码验证消息
+            $('#editPasswordMessage').remove();
+            $('#editAnchorModal').removeClass('hidden');
+            $('#editAnchorName').focus();
+        }
+
+        // 隐藏编辑主播弹窗
+        function hideEditAnchorModal() {
+            $('#editAnchorModal').addClass('hidden');
+        }
+
+        // 填充编辑表单
+        function fillEditForm(anchor) {
+            $('#editAnchorIdHidden').val(anchor.id);
+            $('#editAnchorName').val(anchor.anchor_name || '');
+            $('#editAnchorId').val(anchor.anchor_id || '');
+            $('#editPassword').val(anchor.password || '');
+            $('#editAnchorCookie').val(anchor.anchor_cookie || '');
+            $('#editStatus').val(anchor.status || 'active');
+        }
+
+        // 将数据库日期格式转换为input[type="date"]格式
+        function convertDbDateToInputDate(dbDate) {
+            if (!dbDate) return '';
+            // 数据库格式: "20250120 00:00:00"
+            // 转换为: "2025-01-20"
+            const dateStr = dbDate.split(' ')[0]; // 取日期部分
+            if (dateStr.length === 8) {
+                const year = dateStr.substring(0, 4);
+                const month = dateStr.substring(4, 6);
+                const day = dateStr.substring(6, 8);
+                return `${year}-${month}-${day}`;
+            }
+            return '';
+        }
+
+        // 将input[type="date"]格式转换为数据库格式
+        function convertInputDateToDbDate(inputDate) {
+            if (!inputDate) return null;
+            // input格式: "2025-01-20"
+            // 转换为: "20250120 00:00:00"
+            const dateParts = inputDate.split('-');
+            if (dateParts.length === 3) {
+                return `${dateParts[0]}${dateParts[1]}${dateParts[2]} 00:00:00`;
+            }
+            return null;
+        }
+
+        // 提交添加主播
+        async function submitAddAnchor() {
+            const password = $('#addPassword').val();
+            const data = {
+                anchor_name: $('#addAnchorName').val(),
+                anchor_id: $('#addAnchorId').val(),
+                anchor_cookie: $('#addAnchorCookie').val(),
+                status: $('#addStatus').val()
+            };
+
+            // 验证必填字段
+            if (!data.anchor_name || !data.anchor_id) {
+                layer.msg('请填写所有必填字段', { icon: 2 });
+                return;
+            }
+
+            // 验证密码长度
+            if (password && password.length < 6) {
+                layer.msg('密码不能少于6位', { icon: 2 });
+                return;
+            }
+
+            // 检查密码是否重复
+            if (password) {
+                try {
+                    const checkResponse = await fetch('/api/anchors/check-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...addApiKeyHeader()
+                        },
+                        body: JSON.stringify({
+                            password: password,
+                            excludeId: null
+                        })
+                    });
+
+                    if (checkResponse.ok) {
+                        const checkResult = await checkResponse.json();
+                        if (checkResult.isDuplicate) {
+                            layer.msg(checkResult.message, { icon: 2 });
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('检查密码重复失败:', error);
+                }
+
+                data.password = password;
+            }
+
+            try {
+                const $submitBtn = $('#submitAddAnchorBtn');
+                $submitBtn.prop('disabled', true);
+                $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>保存中...');
+
+                const response = await fetch('/api/anchors', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...addApiKeyHeader()
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.status === 401) {
+                    const errorData = await response.json();
+                    if (errorData.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '添加主播失败');
+                }
+
+                layer.msg('添加主播成功！', { icon: 1 });
+                hideAddAnchorModal();
+                loadAnchors(); // 重新加载数据
+            } catch (error) {
+                console.error('添加主播失败:', error);
+                layer.msg('添加失败: ' + error.message, { icon: 2 });
+            } finally {
+                const $submitBtn = $('#submitAddAnchorBtn');
+                $submitBtn.prop('disabled', false);
+                $submitBtn.html('<i class="fas fa-save mr-2"></i>保存');
+            }
+        }
+
+        // 提交编辑主播
+        async function submitEditAnchor() {
+            const anchorId = $('#editAnchorIdHidden').val();
+            const password = $('#editPassword').val();
+            const data = {
+                anchor_name: $('#editAnchorName').val(),
+                anchor_id: $('#editAnchorId').val(),
+                anchor_cookie: $('#editAnchorCookie').val(),
+                status: $('#editStatus').val()
+            };
+
+            // 验证必填字段
+            if (!data.anchor_name || !data.anchor_id) {
+                layer.msg('请填写所有必填字段', { icon: 2 });
+                return;
+            }
+
+            // 验证密码长度
+            if (password && password.length < 6) {
+                layer.msg('密码不能少于6位', { icon: 2 });
+                return;
+            }
+
+            // 检查密码是否重复
+            if (password) {
+                try {
+                    const checkResponse = await fetch('/api/anchors/check-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...addApiKeyHeader()
+                        },
+                        body: JSON.stringify({
+                            password: password,
+                            excludeId: anchorId
+                        })
+                    });
+
+                    if (checkResponse.ok) {
+                        const checkResult = await checkResponse.json();
+                        if (checkResult.isDuplicate) {
+                            layer.msg(checkResult.message, { icon: 2 });
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('检查密码重复失败:', error);
+                }
+
+                data.password = password;
+            }
+
+            try {
+                const $submitBtn = $('#submitEditAnchorBtn');
+                $submitBtn.prop('disabled', true);
+                $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>保存中...');
+
+                const response = await fetch(`/api/anchors/${anchorId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...addApiKeyHeader()
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.status === 401) {
+                    const errorData = await response.json();
+                    if (errorData.error === "invalid_api_key") {
+                        showApiKeyModal();
+                        return;
+                    }
+                }
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '修改主播失败');
+                }
+
+                layer.msg('修改主播成功！', { icon: 1 });
+                hideEditAnchorModal();
+                loadAnchors(); // 重新加载数据
+            } catch (error) {
+                console.error('修改主播失败:', error);
+                layer.msg('修改失败: ' + error.message, { icon: 2 });
+            } finally {
+                const $submitBtn = $('#submitEditAnchorBtn');
+                $submitBtn.prop('disabled', false);
+                $submitBtn.html('<i class="fas fa-save mr-2"></i>保存修改');
+            }
+        }
+
+        // 点击背景关闭弹窗
+        $(document).on('click', function(e) {
+            if ($(e.target).hasClass('fixed') && $(e.target).hasClass('inset-0')) {
+                if ($(e.target).closest('#addAnchorModal').length) {
+                    hideAddAnchorModal();
+                } else if ($(e.target).closest('#editAnchorModal').length) {
+                    hideEditAnchorModal();
+                }
+            }
+        });
+
+        // ESC键关闭弹窗
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideAddAnchorModal();
+                hideEditAnchorModal();
+            }
+        });
+    </script>
+</body>
+</html>
