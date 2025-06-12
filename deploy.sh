@@ -51,7 +51,7 @@ install_dependencies() {
     apt update
 
     print_info "安装必要依赖..."
-    apt install -y curl wget git build-essential python3 sqlite3
+    apt install -y curl wget git build-essential python3 python3-dev sqlite3 pkg-config
 
     # 安装 Node.js 18.x
     if ! command -v node &> /dev/null; then
@@ -79,6 +79,14 @@ setup_project() {
     if ! id "$USER" &>/dev/null; then
         print_info "创建用户 $USER..."
         useradd -r -s /bin/false $USER
+    fi
+
+    # 创建用户主目录（如果不存在）
+    USER_HOME="/home/$USER"
+    if [ ! -d "$USER_HOME" ]; then
+        print_info "创建用户主目录..."
+        mkdir -p $USER_HOME
+        chown $USER:$USER $USER_HOME
     fi
 
     # 设置目录权限
@@ -126,9 +134,24 @@ deploy_project() {
     # 进入项目目录
     cd $PROJECT_DIR
 
+    # 清理npm缓存
+    print_info "清理npm缓存..."
+    sudo -u $USER npm cache clean --force
+
+    # 设置npm配置，避免权限问题
+    print_info "配置npm环境..."
+    sudo -u $USER npm config set cache /tmp/.npm
+    sudo -u $USER npm config set prefix /home/$USER/.npm-global
+
     # 安装依赖
     print_info "安装项目依赖..."
-    sudo -u $USER npm install
+    sudo -u $USER npm install --no-optional
+
+    # 检查关键依赖是否安装成功
+    if [ ! -d "node_modules/better-sqlite3" ]; then
+        print_warning "better-sqlite3 安装失败，尝试重新安装..."
+        sudo -u $USER npm install better-sqlite3 --build-from-source
+    fi
 
     # 初始化数据库
     print_info "初始化数据库..."
@@ -174,12 +197,26 @@ EOF
 start_service() {
     print_info "启动服务..."
     cd $PROJECT_DIR
-    sudo -u $USER pm2 start ecosystem.config.js
-    sudo -u $USER pm2 save
-    
+
+    # 设置PM2环境变量
+    export PM2_HOME="/home/$USER/.pm2"
+
+    # 确保PM2目录存在并设置权限
+    sudo -u $USER mkdir -p /home/$USER/.pm2
+    sudo -u $USER mkdir -p /home/$USER/.pm2/logs
+    sudo -u $USER mkdir -p /home/$USER/.pm2/pids
+    sudo -u $USER mkdir -p /home/$USER/.pm2/modules
+
+    # 初始化PM2配置
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 ping
+
+    # 启动服务
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 start ecosystem.config.js
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 save
+
     # 设置开机自启
-    pm2 startup systemd -u $USER --hp /home/$USER
-    
+    env PATH=$PATH:/usr/bin pm2 startup systemd -u $USER --hp /home/$USER
+
     print_success "服务启动完成"
     print_info "服务地址: http://localhost:3000"
 }
@@ -187,24 +224,24 @@ start_service() {
 # 停止服务
 stop_service() {
     print_info "停止服务..."
-    sudo -u $USER pm2 stop $SERVICE_NAME
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 stop $SERVICE_NAME
     print_success "服务已停止"
 }
 
 # 重启服务
 restart_service() {
     print_info "重启服务..."
-    sudo -u $USER pm2 restart $SERVICE_NAME
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 restart $SERVICE_NAME
     print_success "服务已重启"
 }
 
 # 查看服务状态
 status_service() {
     print_info "服务状态:"
-    sudo -u $USER pm2 status
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 status
     echo ""
     print_info "服务详情:"
-    sudo -u $USER pm2 show $SERVICE_NAME
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 show $SERVICE_NAME
 }
 
 # 查看日志
@@ -221,19 +258,19 @@ view_logs() {
     case $log_choice in
         1)
             print_info "显示实时日志 (按 Ctrl+C 退出)..."
-            sudo -u $USER pm2 logs $SERVICE_NAME
+            sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 logs $SERVICE_NAME
             ;;
         2)
             print_info "显示实时输出日志 (按 Ctrl+C 退出)..."
-            sudo -u $USER pm2 logs $SERVICE_NAME --out
+            sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 logs $SERVICE_NAME --out
             ;;
         3)
             print_info "显示实时错误日志 (按 Ctrl+C 退出)..."
-            sudo -u $USER pm2 logs $SERVICE_NAME --err
+            sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 logs $SERVICE_NAME --err
             ;;
         4)
             print_info "显示历史日志 (最近100行)..."
-            sudo -u $USER pm2 logs $SERVICE_NAME --lines 100
+            sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 logs $SERVICE_NAME --lines 100
             ;;
         5)
             return
@@ -249,7 +286,7 @@ update_project() {
     print_info "更新项目..."
 
     # 停止服务
-    sudo -u $USER pm2 stop $SERVICE_NAME
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 stop $SERVICE_NAME
 
     # 备份当前版本
     backup_dir="/tmp/${PROJECT_NAME}_backup_$(date +%Y%m%d_%H%M%S)"
@@ -274,10 +311,10 @@ update_project() {
     # 更新依赖
     print_info "更新项目依赖..."
     cd $PROJECT_DIR
-    sudo -u $USER npm install
+    sudo -u $USER npm install --no-optional
 
     # 重启服务
-    sudo -u $USER pm2 restart $SERVICE_NAME
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 restart $SERVICE_NAME
 
     print_success "项目更新完成"
 }
@@ -291,8 +328,8 @@ uninstall_service() {
         print_info "卸载服务..."
         
         # 停止并删除PM2进程
-        sudo -u $USER pm2 delete $SERVICE_NAME 2>/dev/null || true
-        sudo -u $USER pm2 save
+        sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 delete $SERVICE_NAME 2>/dev/null || true
+        sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 save
         
         # 删除项目目录
         rm -rf $PROJECT_DIR
@@ -332,8 +369,8 @@ show_menu() {
     echo ""
 
     # 检查服务状态
-    if sudo -u $USER pm2 describe $SERVICE_NAME &>/dev/null; then
-        status=$(sudo -u $USER pm2 jlist | jq -r ".[] | select(.name==\"$SERVICE_NAME\") | .pm2_env.status" 2>/dev/null || echo "unknown")
+    if sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 describe $SERVICE_NAME &>/dev/null; then
+        status=$(sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 jlist | jq -r ".[] | select(.name==\"$SERVICE_NAME\") | .pm2_env.status" 2>/dev/null || echo "unknown")
         if [ "$status" = "online" ]; then
             echo -e "服务状态: ${GREEN}运行中${NC}"
         else
@@ -365,6 +402,7 @@ show_menu() {
     echo "10) 显示系统信息"
     echo "11) 测试服务连接"
     echo "12) 配置 Git 仓库"
+    echo "13) 修复权限问题"
     echo ""
     echo "0) 退出"
     echo ""
@@ -375,7 +413,7 @@ clean_logs() {
     print_info "清理日志文件..."
 
     # 清理PM2日志
-    sudo -u $USER pm2 flush
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 flush
 
     # 清理日志目录
     if [ -d "$LOG_DIR" ]; then
@@ -436,12 +474,51 @@ configure_git_repo() {
     print_info "Git 配置完成"
 }
 
+# 修复权限问题
+fix_permissions() {
+    print_info "修复权限问题..."
+
+    # 确保用户主目录存在
+    USER_HOME="/home/$USER"
+    if [ ! -d "$USER_HOME" ]; then
+        mkdir -p $USER_HOME
+        chown $USER:$USER $USER_HOME
+    fi
+
+    # 修复项目目录权限
+    if [ -d "$PROJECT_DIR" ]; then
+        chown -R $USER:$USER $PROJECT_DIR
+    fi
+
+    # 修复日志目录权限
+    if [ -d "$LOG_DIR" ]; then
+        chown -R $USER:$USER $LOG_DIR
+    fi
+
+    # 修复PM2目录权限
+    if [ -d "$USER_HOME/.pm2" ]; then
+        chown -R $USER:$USER $USER_HOME/.pm2
+    fi
+
+    # 修复npm目录权限
+    if [ -d "$USER_HOME/.npm" ]; then
+        chown -R $USER:$USER $USER_HOME/.npm
+    fi
+
+    if [ -d "$USER_HOME/.npm-global" ]; then
+        chown -R $USER:$USER $USER_HOME/.npm-global
+    fi
+
+    print_success "权限修复完成"
+}
+
 # 全新部署
 full_deploy() {
     print_info "开始全新部署..."
 
     install_dependencies
     setup_project
+    fix_permissions
     deploy_project
     create_pm2_config
     start_service
@@ -460,7 +537,7 @@ main() {
 
     while true; do
         show_menu
-        read -p "请选择操作 [0-12]: " choice
+        read -p "请选择操作 [0-13]: " choice
 
         case $choice in
             1)
@@ -508,6 +585,10 @@ main() {
                 ;;
             12)
                 configure_git_repo
+                read -p "按回车键继续..."
+                ;;
+            13)
+                fix_permissions
                 read -p "按回车键继续..."
                 ;;
             0)
