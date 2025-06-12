@@ -78,7 +78,7 @@ setup_project() {
     # 创建用户（如果不存在）
     if ! id "$USER" &>/dev/null; then
         print_info "创建用户 $USER..."
-        useradd -r -s /bin/false $USER
+        useradd -r -s /bin/false -d /home/$USER $USER
     fi
 
     # 创建用户主目录（如果不存在）
@@ -88,6 +88,14 @@ setup_project() {
         mkdir -p $USER_HOME
         chown $USER:$USER $USER_HOME
     fi
+
+    # 创建并修复 /var/www 目录权限（www-data 用户可能需要）
+    if [ ! -d "/var/www" ]; then
+        print_info "创建 /var/www 目录..."
+        mkdir -p /var/www
+    fi
+    chown $USER:$USER /var/www
+    chmod 755 /var/www
 
     # 设置目录权限
     chown -R $USER:$USER $PROJECT_DIR
@@ -136,26 +144,32 @@ deploy_project() {
 
     # 清理npm缓存
     print_info "清理npm缓存..."
-    sudo -u $USER npm cache clean --force
+    sudo -u $USER env HOME=/home/$USER NPM_CONFIG_CACHE=/tmp/.npm-$USER npm cache clean --force
 
     # 设置npm配置，避免权限问题
     print_info "配置npm环境..."
-    sudo -u $USER npm config set cache /tmp/.npm
-    sudo -u $USER npm config set prefix /home/$USER/.npm-global
+
+    # 创建npm相关目录
+    sudo -u $USER mkdir -p /home/$USER/.npm
+    sudo -u $USER mkdir -p /home/$USER/.npm-global
+    sudo -u $USER mkdir -p /tmp/.npm-$USER
+    chown -R $USER:$USER /home/$USER/.npm
+    chown -R $USER:$USER /home/$USER/.npm-global
+    chown -R $USER:$USER /tmp/.npm-$USER
 
     # 安装依赖
     print_info "安装项目依赖..."
-    sudo -u $USER npm install --no-optional
+    sudo -u $USER env HOME=/home/$USER NPM_CONFIG_CACHE=/tmp/.npm-$USER NPM_CONFIG_PREFIX=/home/$USER/.npm-global npm install --no-optional
 
     # 检查关键依赖是否安装成功
     if [ ! -d "node_modules/better-sqlite3" ]; then
         print_warning "better-sqlite3 安装失败，尝试重新安装..."
-        sudo -u $USER npm install better-sqlite3 --build-from-source
+        sudo -u $USER env HOME=/home/$USER NPM_CONFIG_CACHE=/tmp/.npm-$USER npm install better-sqlite3 --build-from-source
     fi
 
     # 初始化数据库
     print_info "初始化数据库..."
-    sudo -u $USER npm run init-db
+    sudo -u $USER env HOME=/home/$USER npm run init-db
 
     print_success "项目部署完成"
 }
@@ -163,14 +177,13 @@ deploy_project() {
 # 创建 PM2 配置文件
 create_pm2_config() {
     print_info "创建 PM2 配置文件..."
-    
-    cat > $PROJECT_DIR/ecosystem.config.js << EOF
+
+    cat > $PROJECT_DIR/ecosystem.config.cjs << EOF
 module.exports = {
   apps: [{
     name: '$SERVICE_NAME',
     script: 'src/server.js',
     cwd: '$PROJECT_DIR',
-    user: '$USER',
     instances: 1,
     exec_mode: 'fork',
     watch: false,
@@ -189,7 +202,7 @@ module.exports = {
 };
 EOF
 
-    chown $USER:$USER $PROJECT_DIR/ecosystem.config.js
+    chown $USER:$USER $PROJECT_DIR/ecosystem.config.cjs
     print_success "PM2 配置文件创建完成"
 }
 
@@ -210,8 +223,11 @@ start_service() {
     # 初始化PM2配置
     sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 ping
 
+    # 删除可能存在的同名进程
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 delete $SERVICE_NAME 2>/dev/null || true
+
     # 启动服务
-    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 start ecosystem.config.js
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 start ecosystem.config.cjs
     sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 save
 
     # 设置开机自启
@@ -219,6 +235,27 @@ start_service() {
 
     print_success "服务启动完成"
     print_info "服务地址: http://localhost:3000"
+
+    # 显示服务状态
+    print_info "服务状态:"
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 status
+
+    # 等待服务启动
+    sleep 3
+
+    # 检查服务是否正常运行
+    if sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 describe $SERVICE_NAME &>/dev/null; then
+        status=$(sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 jlist | jq -r ".[] | select(.name==\"$SERVICE_NAME\") | .pm2_env.status" 2>/dev/null || echo "unknown")
+        if [ "$status" = "online" ]; then
+            print_success "服务启动成功并正在运行"
+        else
+            print_warning "服务已启动但状态异常: $status"
+            print_info "查看日志: sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 logs $SERVICE_NAME"
+        fi
+    else
+        print_error "服务启动失败"
+        print_info "查看日志: sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 logs $SERVICE_NAME"
+    fi
 }
 
 # 停止服务
@@ -238,10 +275,17 @@ restart_service() {
 # 查看服务状态
 status_service() {
     print_info "服务状态:"
-    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 status
-    echo ""
-    print_info "服务详情:"
-    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 show $SERVICE_NAME
+    if sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 status 2>/dev/null; then
+        echo ""
+        print_info "服务详情:"
+        sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 show $SERVICE_NAME 2>/dev/null || print_warning "无法获取服务详情"
+    else
+        print_error "无法连接到PM2守护进程"
+        print_info "尝试重启PM2守护进程..."
+        sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 kill
+        sleep 2
+        sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 ping
+    fi
 }
 
 # 查看日志
@@ -311,7 +355,7 @@ update_project() {
     # 更新依赖
     print_info "更新项目依赖..."
     cd $PROJECT_DIR
-    sudo -u $USER npm install --no-optional
+    sudo -u $USER env HOME=/home/$USER NPM_CONFIG_CACHE=/tmp/.npm-$USER npm install --no-optional
 
     # 重启服务
     sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 restart $SERVICE_NAME
@@ -369,12 +413,14 @@ show_menu() {
     echo ""
 
     # 检查服务状态
-    if sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 describe $SERVICE_NAME &>/dev/null; then
-        status=$(sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 jlist | jq -r ".[] | select(.name==\"$SERVICE_NAME\") | .pm2_env.status" 2>/dev/null || echo "unknown")
+    if sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 describe $SERVICE_NAME >/dev/null 2>&1; then
+        status=$(sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$SERVICE_NAME\") | .pm2_env.status" 2>/dev/null || echo "unknown")
         if [ "$status" = "online" ]; then
             echo -e "服务状态: ${GREEN}运行中${NC}"
-        else
+        elif [ "$status" = "stopped" ]; then
             echo -e "服务状态: ${RED}已停止${NC}"
+        else
+            echo -e "服务状态: ${YELLOW}状态未知${NC}"
         fi
     else
         echo -e "服务状态: ${YELLOW}未部署${NC}"
@@ -403,6 +449,7 @@ show_menu() {
     echo "11) 测试服务连接"
     echo "12) 配置 Git 仓库"
     echo "13) 修复权限问题"
+    echo "14) 修复 PM2 守护进程"
     echo ""
     echo "0) 退出"
     echo ""
@@ -432,15 +479,60 @@ test_connection() {
     if netstat -tlnp | grep :3000 &>/dev/null; then
         print_success "端口3000正在监听"
 
-        # 测试HTTP连接
+        # 显示监听详情
+        print_info "端口监听详情:"
+        netstat -tlnp | grep :3000
+        echo ""
+
+        # 测试本地连接
         if curl -s http://localhost:3000/health &>/dev/null; then
-            print_success "HTTP服务响应正常"
-            echo "访问地址: http://$(hostname -I | awk '{print $1}'):3000"
+            print_success "本地HTTP服务响应正常"
         else
-            print_warning "HTTP服务无响应"
+            print_warning "本地HTTP服务无响应，尝试测试根路径..."
+            if curl -s http://localhost:3000/ &>/dev/null; then
+                print_success "根路径响应正常"
+            else
+                print_warning "HTTP服务可能未完全启动"
+            fi
         fi
+
+        # 获取服务器IP地址
+        SERVER_IP=$(hostname -I | awk '{print $1}')
+        print_info "服务器IP地址: $SERVER_IP"
+
+        # 显示访问地址
+        echo ""
+        print_success "=== 访问地址 ==="
+        echo "本地访问: http://localhost:3000"
+        echo "外部访问: http://$SERVER_IP:3000"
+        echo "管理界面: http://$SERVER_IP:3000/anchors"
+        echo ""
+
+        # 检查防火墙状态
+        print_info "检查防火墙状态..."
+        if command -v ufw &> /dev/null; then
+            ufw_status=$(ufw status | grep "Status:" | awk '{print $2}')
+            if [ "$ufw_status" = "active" ]; then
+                print_warning "UFW防火墙处于活动状态"
+                if ! ufw status | grep "3000" &>/dev/null; then
+                    print_warning "端口3000可能被防火墙阻止"
+                    echo "建议运行: ufw allow 3000"
+                fi
+            else
+                print_info "UFW防火墙未启用"
+            fi
+        fi
+
+        if command -v iptables &> /dev/null; then
+            if iptables -L INPUT | grep "DROP\|REJECT" &>/dev/null; then
+                print_warning "检测到iptables规则，可能影响端口访问"
+            fi
+        fi
+
     else
         print_error "端口3000未监听"
+        print_info "检查服务状态..."
+        sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 status
     fi
 }
 
@@ -474,6 +566,41 @@ configure_git_repo() {
     print_info "Git 配置完成"
 }
 
+# 修复 PM2 守护进程
+fix_pm2_daemon() {
+    print_info "修复 PM2 守护进程..."
+
+    # 停止所有PM2进程
+    print_info "停止 PM2 守护进程..."
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 kill 2>/dev/null || true
+
+    # 清理PM2相关文件
+    print_info "清理 PM2 临时文件..."
+    sudo -u $USER rm -rf /home/$USER/.pm2/pm2.pid 2>/dev/null || true
+    sudo -u $USER rm -rf /home/$USER/.pm2/pm2.sock 2>/dev/null || true
+    sudo -u $USER rm -rf /home/$USER/.pm2/rpc.sock 2>/dev/null || true
+    sudo -u $USER rm -rf /home/$USER/.pm2/pub.sock 2>/dev/null || true
+
+    # 等待清理完成
+    sleep 2
+
+    # 重新启动PM2守护进程
+    print_info "重新启动 PM2 守护进程..."
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 ping
+
+    # 检查是否有之前的服务需要恢复
+    if [ -f "/home/$USER/.pm2/dump.pm2" ]; then
+        print_info "恢复之前的服务..."
+        sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 resurrect
+    fi
+
+    print_success "PM2 守护进程修复完成"
+
+    # 显示当前状态
+    print_info "当前 PM2 状态:"
+    sudo -u $USER PM2_HOME=/home/$USER/.pm2 pm2 status 2>/dev/null || print_warning "PM2 状态获取失败"
+}
+
 # 修复权限问题
 fix_permissions() {
     print_info "修复权限问题..."
@@ -484,6 +611,13 @@ fix_permissions() {
         mkdir -p $USER_HOME
         chown $USER:$USER $USER_HOME
     fi
+
+    # 修复 /var/www 目录权限
+    if [ ! -d "/var/www" ]; then
+        mkdir -p /var/www
+    fi
+    chown -R $USER:$USER /var/www
+    chmod 755 /var/www
 
     # 修复项目目录权限
     if [ -d "$PROJECT_DIR" ]; then
@@ -507,6 +641,11 @@ fix_permissions() {
 
     if [ -d "$USER_HOME/.npm-global" ]; then
         chown -R $USER:$USER $USER_HOME/.npm-global
+    fi
+
+    # 修复临时npm目录权限
+    if [ -d "/tmp/.npm-$USER" ]; then
+        chown -R $USER:$USER /tmp/.npm-$USER
     fi
 
     print_success "权限修复完成"
@@ -537,7 +676,7 @@ main() {
 
     while true; do
         show_menu
-        read -p "请选择操作 [0-13]: " choice
+        read -p "请选择操作 [0-14]: " choice
 
         case $choice in
             1)
@@ -589,6 +728,10 @@ main() {
                 ;;
             13)
                 fix_permissions
+                read -p "按回车键继续..."
+                ;;
+            14)
+                fix_pm2_daemon
                 read -p "按回车键继续..."
                 ;;
             0)
